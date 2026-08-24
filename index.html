@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Static Bloom</title>
 <style>
   :root{
@@ -202,7 +207,12 @@
   @media (prefers-reduced-motion: reduce){
     .bloom.active .tulip-grow{opacity:1; transform:scale(1) rotate(0deg);}
   }
-  #petals{position:fixed; inset:0; pointer-events:none; z-index:1;}
+  /* absolute + contained in .bloom (position:relative), not viewport-fixed — a fixed,
+     z-indexed canvas would otherwise paint on top of every later section per CSS stacking
+     order (positioned z-index descendants paint after non-positioned in-flow siblings
+     regardless of DOM order), and would never stop costing a frame once she'd scrolled
+     past it. scoping it to the section it belongs to fixes both. */
+  #petals{position:absolute; inset:0; pointer-events:none; z-index:1;}
 
   .bush-row{
     position:absolute;
@@ -625,31 +635,70 @@
     margin:2rem auto 0;
     cursor:pointer;
     user-select:none;
+    filter:drop-shadow(0 18px 22px rgba(120,55,85,.28));
   }
-  .gift-box-svg{ display:block; }
-  .gift-body, .gift-lid{
-    fill:#5a5560;
-    transition:fill 700ms ease;
-  }
-  .gift-ribbon-v, .gift-ribbon-h, .gift-bow path, .gift-bow circle{
-    fill:#3f3b46;
-    transition:fill 700ms ease;
-  }
-  .gift-box-wrap.colored .gift-body, .gift-box-wrap.colored .gift-lid{ fill:#f0a8c2; }
-  .gift-box-wrap.colored .gift-ribbon-v, .gift-box-wrap.colored .gift-ribbon-h,
-  .gift-box-wrap.colored .gift-bow path, .gift-box-wrap.colored .gift-bow circle{ fill:#f2c76b; }
+  .gift-box-svg{ display:block; overflow:visible; }
+  /* dimensional shading via gradients rather than flat fills — the stop colors (not the
+     fill) transition, so the box still reads as lit/shaded once real color arrives */
+  .gift-body, .gift-lid{ fill:url(#giftBodyGrad); }
+  .gift-ribbon-v, .gift-ribbon-h, .gift-bow path, .gift-bow circle{ fill:url(#giftRibbonGrad); }
+  .gift-stop-body-a{ stop-color:#726c7a; transition:stop-color 700ms ease; }
+  .gift-stop-body-b{ stop-color:#413c49; transition:stop-color 700ms ease; }
+  .gift-stop-ribbon-a{ stop-color:#524c5c; transition:stop-color 700ms ease; }
+  .gift-stop-ribbon-b{ stop-color:#2b2732; transition:stop-color 700ms ease; }
+  .gift-box-wrap.colored .gift-stop-body-a{ stop-color:#ffd0e0; }
+  .gift-box-wrap.colored .gift-stop-body-b{ stop-color:#e8799f; }
+  .gift-box-wrap.colored .gift-stop-ribbon-a{ stop-color:#ffe19a; }
+  .gift-box-wrap.colored .gift-stop-ribbon-b{ stop-color:#e2ac52; }
+  .gift-shadow{ fill:rgba(90,40,60,.22); filter:blur(4px); }
   #giftLid{
     transform-box:fill-box;
     transform-origin:8% 100%;
     transition:transform 200ms ease;
   }
   .gift-box-wrap.shake #giftLid{ animation:giftShake 220ms ease; }
+  .gift-box-wrap.shake{ animation:giftWobble 220ms ease; }
   @keyframes giftShake{
     0%,100%{ transform:rotate(0deg); }
-    50%{ transform:rotate(-4deg); }
+    50%{ transform:rotate(var(--shakeRot,-4deg)); }
   }
-  .gift-box-wrap.opened #giftLid{
-    transform:rotate(-108deg) translateY(-6px);
+  @keyframes giftWobble{
+    0%,100%{ transform:translateX(0) rotate(0deg); }
+    30%{ transform:translateX(calc(var(--wobble,3px) * -1)) rotate(-.6deg); }
+    70%{ transform:translateX(var(--wobble,3px)) rotate(.6deg); }
+  }
+  /* an idle invitation to touch it, before she's clicked at all */
+  @media (prefers-reduced-motion:no-preference){
+    .gift-box-wrap.colored:not(.opened):not(.shake){ animation:giftBreathe 2.6s ease-in-out infinite; }
+    @keyframes giftBreathe{
+      0%,100%{ transform:scale(1); }
+      50%{ transform:scale(1.03); }
+    }
+    .gift-box-wrap.opened #giftLid{
+      animation:giftLidPop 900ms cubic-bezier(.17,.89,.32,1.4) forwards;
+    }
+    @keyframes giftLidPop{
+      0%{ transform:rotate(0deg) translateY(0) scale(1); }
+      55%{ transform:rotate(-132deg) translateY(-24px) scale(1.06); }
+      100%{ transform:rotate(-108deg) translateY(-6px) scale(1); }
+    }
+    .gift-glow{ animation:none; }
+    .gift-box-wrap.opened .gift-glow{ animation:giftGlowBurst 1200ms ease-out forwards; }
+    @keyframes giftGlowBurst{
+      0%{ opacity:0; transform:scale(.3); }
+      35%{ opacity:1; transform:scale(1.15); }
+      100%{ opacity:0; transform:scale(1.7); }
+    }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .gift-box-wrap.opened #giftLid{ transform:rotate(-108deg) translateY(-6px); }
+    .gift-glow{ display:none; }
+  }
+  .gift-glow{
+    opacity:0;
+    transform-box:fill-box;
+    transform-origin:50% 50%;
+    transform:scale(.3);
   }
   .gift-progress{
     width:100%; height:6px;
@@ -737,6 +786,7 @@
 
   /* ---------- TOO LATE (spin wheel) ---------- */
   .toolate{
+    position:relative;
     background:var(--bloom-ink);
     padding:10vh 6vw;
     text-align:center;
@@ -744,6 +794,17 @@
     transform:scale(.94);
     transition:opacity 750ms ease, transform 750ms cubic-bezier(.22,.8,.28,1);
   }
+  /* cinematic focus-pull during the spin: darkens the edges, negative z-index so it
+     paints behind the title/sub/wheel without needing to touch their stacking at all */
+  .toolate::before{
+    content:"";
+    position:absolute; inset:0; z-index:-1;
+    background:radial-gradient(ellipse at 50% 42%, transparent 30%, rgba(0,0,0,.6) 115%);
+    opacity:0;
+    transition:opacity 700ms ease;
+    pointer-events:none;
+  }
+  .toolate.spinning::before{ opacity:1; }
   .toolate.entered{
     opacity:1;
     transform:scale(1);
@@ -811,14 +872,32 @@
     z-index:2;
     filter:drop-shadow(0 3px 4px rgba(0,0,0,.4));
   }
+  @media (prefers-reduced-motion:no-preference){
+    .wheel-pointer-svg.tick{ animation:pointerTick 90ms ease; }
+    @keyframes pointerTick{
+      0%{ transform:translateX(-50%) scale(1); }
+      40%{ transform:translateX(-50%) scale(1.22) translateY(2px); }
+      100%{ transform:translateX(-50%) scale(1); }
+    }
+  }
   .wheel-disc{
     width:100%; aspect-ratio:1/1;
     border-radius:50%;
     border:5px solid #fff;
     box-shadow:0 20px 40px -12px rgba(0,0,0,.5);
     transform:rotate(0deg);
-    transition:transform 6.5s cubic-bezier(.12,.7,.08,1);
     position:relative;
+  }
+  /* the spin itself is now driven frame-by-frame from JS (wind-up, deceleration, an
+     overshoot-and-settle wobble, per-segment ticks) rather than a single CSS transition —
+     see initWheel(). a golden pulse ring marks the moment it actually lands. */
+  @media (prefers-reduced-motion:no-preference){
+    .wheel-disc.landed{ animation:wheelLanded 900ms ease-out; }
+    @keyframes wheelLanded{
+      0%{ box-shadow:0 20px 40px -12px rgba(0,0,0,.5), 0 0 0 0 rgba(255,215,120,.9); }
+      45%{ box-shadow:0 20px 40px -12px rgba(0,0,0,.5), 0 0 0 20px rgba(255,215,120,0); }
+      100%{ box-shadow:0 20px 40px -12px rgba(0,0,0,.5), 0 0 0 0 rgba(255,215,120,0); }
+    }
   }
   .wheel-disc span{
     position:absolute;
@@ -1053,6 +1132,8 @@
     *{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important;}
   }
 </style>
+</head>
+<body>
 
 <section class="void" id="voidPhase">
   <p class="void-code" id="voidCode"></p>
@@ -1479,6 +1560,22 @@
   <p class="letter-eyebrow">one more thing</p>
   <div class="gift-box-wrap locked" id="giftBoxWrap">
     <svg class="gift-box-svg" id="giftBoxSvg" viewBox="0 0 200 190" width="100%" height="100%">
+      <defs>
+        <linearGradient id="giftBodyGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop class="gift-stop-body-a" offset="0%"/>
+          <stop class="gift-stop-body-b" offset="100%"/>
+        </linearGradient>
+        <linearGradient id="giftRibbonGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop class="gift-stop-ribbon-a" offset="0%"/>
+          <stop class="gift-stop-ribbon-b" offset="100%"/>
+        </linearGradient>
+        <radialGradient id="giftGlowGrad" cx="50%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#fff6da" stop-opacity=".95"/>
+          <stop offset="55%" stop-color="#ffd77a" stop-opacity=".55"/>
+          <stop offset="100%" stop-color="#ffd77a" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <ellipse class="gift-shadow" cx="100" cy="184" rx="78" ry="10"/>
       <rect class="gift-body" x="30" y="80" width="140" height="100" rx="6"/>
       <rect class="gift-lid" id="giftLid" x="18" y="52" width="164" height="34" rx="6"/>
       <rect class="gift-ribbon-v" x="92" y="52" width="16" height="128"/>
@@ -1488,6 +1585,7 @@
         <path d="M100,52 C122,52 134,36 126,20 C114,22 102,34 100,52 Z"/>
         <circle cx="100" cy="50" r="9"/>
       </g>
+      <ellipse class="gift-glow" cx="100" cy="86" rx="60" ry="46" fill="url(#giftGlowGrad)"/>
     </svg>
     <div class="gift-progress"><div class="gift-progress-fill" id="giftProgressFill"></div></div>
     <p class="gift-hint" id="giftHint">click me</p>
@@ -2011,6 +2109,22 @@
     }catch(e){}
   }
 
+  function playTick(){
+    try{
+      warmAudio();
+      if(!audioCtx) return;
+      var t0 = audioCtx.currentTime + 0.002;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1500 + Math.random() * 220, t0);
+      gain.gain.setValueAtTime(0.09, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.045);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.05);
+    }catch(e){}
+  }
+
   function playBoop(){
     try{
       warmAudio();
@@ -2121,6 +2235,59 @@
     });
     if(onSettled){ setTimeout(onSettled, settleMs || 800); }
   }
+
+  // shared keyboard-accessibility helper for the two modals (date picker, photo lightbox):
+  // moves focus in on open, keeps Tab cycling inside the dialog instead of leaking to the
+  // page behind it, and hands focus back to whatever opened it on close
+  function makeFocusTrap(container){
+    var lastFocused = null;
+    function focusable(){
+      return Array.prototype.slice.call(
+        container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter(function(el){ return !el.disabled && el.offsetParent !== null; });
+    }
+    return {
+      activate: function(focusEl){
+        lastFocused = document.activeElement;
+        (focusEl || focusable()[0] || container).focus();
+      },
+      deactivate: function(){
+        if(lastFocused && lastFocused.focus){ lastFocused.focus(); }
+        lastFocused = null;
+      },
+      onKeydown: function(e){
+        if(e.key !== 'Tab') return;
+        var items = focusable();
+        if(!items.length) return;
+        var first = items[0], last = items[items.length - 1];
+        if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+      }
+    };
+  }
+
+  var dateModalTrap = null;
+  function openDateModal(){
+    var modal = document.getElementById('dateModal');
+    if(!modal) return;
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    if(!dateModalTrap){ dateModalTrap = makeFocusTrap(modal.querySelector('.date-modal-card')); }
+    dateModalTrap.activate(document.getElementById('dateInput'));
+  }
+  function closeDateModal(){
+    var modal = document.getElementById('dateModal');
+    if(!modal || modal.hidden) return;
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    if(dateModalTrap){ dateModalTrap.deactivate(); }
+  }
+  document.addEventListener('keydown', function(e){
+    var modal = document.getElementById('dateModal');
+    if(!modal || modal.hidden) return;
+    if(e.key === 'Escape'){ closeDateModal(); }
+    else { dateModalTrap && dateModalTrap.onKeydown(e); }
+  });
 
   function lockControl(el){
     if(!el) return;
@@ -2244,6 +2411,7 @@
     if(!lightbox) return;
 
     var activePhoto = null;
+    var trap = makeFocusTrap(document.querySelector('.photo-lightbox-card'));
 
     function open(photo){
       activePhoto = photo;
@@ -2252,11 +2420,13 @@
       lightbox.classList.add('open');
       lightbox.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
+      trap.activate(btnClose);
     }
     function close(){
       lightbox.classList.remove('open');
       lightbox.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
+      trap.deactivate();
     }
 
     document.querySelectorAll('.timeline-photo').forEach(function(photo){
@@ -2268,7 +2438,9 @@
       if(e.target === lightbox){ close(); }
     });
     document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape' && lightbox.classList.contains('open')){ close(); }
+      if(!lightbox.classList.contains('open')) return;
+      if(e.key === 'Escape'){ close(); }
+      else { trap.onKeydown(e); }
     });
 
     function flashLabel(btn, msg, revertMs){
@@ -2392,6 +2564,10 @@
       progress = Math.min(100, progress + 9);
       fill.style.width = progress + '%';
       playRustle();
+      // tension climbs with progress — the box visibly strains harder toward the end,
+      // not the same small rattle from the first click to the last
+      wrap.style.setProperty('--wobble', (2 + progress / 100 * 7).toFixed(1) + 'px');
+      wrap.style.setProperty('--shakeRot', (-(4 + progress / 100 * 11)).toFixed(1) + 'deg');
       wrap.classList.remove('shake');
       requestAnimationFrame(function(){
         requestAnimationFrame(function(){ wrap.classList.add('shake'); });
@@ -2406,9 +2582,16 @@
       if(progress >= 100){
         opened = true;
         clearInterval(decayTimer);
+        wrap.classList.remove('shake');
         wrap.classList.add('opened');
         hint.textContent = 'it\'s open!';
         playChime();
+        if(!reduced){
+          var rect = wrap.getBoundingClientRect();
+          setTimeout(function(){
+            burstAt(rect.left + rect.width / 2, rect.top + rect.height * 0.3);
+          }, 260);
+        }
         setTimeout(function(){
           revealSection(wishlist, 650, function(){
             unlockControl(document.getElementById('wishlistSubmit'));
@@ -2475,36 +2658,100 @@
       disc.appendChild(span);
     });
 
+    var pointerEl = document.querySelector('.wheel-pointer-svg');
+    var toolate = document.getElementById('toolatePhase');
+
+    function finishSpin(){
+      toolate.classList.remove('spinning');
+      disc.classList.add('landed');
+      playChime();
+      if(!reduced){
+        var rect = disc.getBoundingClientRect();
+        burstAt(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
+      resultBox.hidden = false;
+      spinBtn.style.display = 'none';
+    }
+
     var spun = false;
     spinBtn.addEventListener('click', function(){
       if(spun) return;
       spun = true;
       spinBtn.disabled = true;
       spinBtn.textContent = 'spinning...';
-      playWhoosh();
 
       var segCenter = secretIndex * segAngle + segAngle / 2;
       var jitter = (Math.random() - 0.5) * (segAngle * 0.5);
       var extraSpins = 8;
-      var rotation = extraSpins * 360 + (360 - segCenter) + jitter;
+      var finalTarget = extraSpins * 360 + (360 - segCenter) + jitter;
 
       if(reduced){
-        disc.style.transition = 'none';
+        disc.style.transform = 'rotate(' + finalTarget + 'deg)';
+        setTimeout(finishSpin, 50);
+        return;
       }
-      disc.style.transform = 'rotate(' + rotation + 'deg)';
 
-      setTimeout(function(){
-        playChime();
-        resultBox.hidden = false;
-        spinBtn.style.display = 'none';
-      }, reduced ? 50 : 6600);
+      // wind-up (a small reverse pull, like drawing back a slingshot) -> hard-decel main
+      // spin, with a tick + pointer bounce on every segment it crosses -> a brief
+      // overshoot-and-settle wobble past the target before it actually stops, the way a
+      // real weighted wheel does, instead of gliding to a dead stop exactly on target
+      playWhoosh();
+      toolate.classList.add('spinning');
+
+      var overshoot = 9 + Math.random() * 7;
+      var WIND_MS = 240, SPIN_MS = 4300, SETTLE_MS = 620;
+      var phase = 'wind', phaseStart = null, windEndAngle = 0, lastCrossed = 0;
+
+      function decelEase(t){ return 1 - Math.pow(1 - t, 4.5); }
+
+      function tick(angle){
+        var crossed = Math.floor(angle / segAngle);
+        if(crossed > lastCrossed){
+          lastCrossed = crossed;
+          playTick();
+          pointerEl.classList.remove('tick');
+          void pointerEl.offsetWidth; // force reflow so the class can restart mid-spin
+          pointerEl.classList.add('tick');
+        }
+      }
+
+      function frame(ts){
+        if(phaseStart === null) phaseStart = ts;
+        var elapsed = ts - phaseStart;
+
+        if(phase === 'wind'){
+          var t = Math.min(elapsed / WIND_MS, 1);
+          var angle = -7 * Math.sin(t * Math.PI / 2);
+          disc.style.transform = 'rotate(' + angle.toFixed(2) + 'deg)';
+          if(t >= 1){ phase = 'spin'; phaseStart = ts; windEndAngle = angle; }
+          requestAnimationFrame(frame);
+          return;
+        }
+
+        if(phase === 'spin'){
+          var t2 = Math.min(elapsed / SPIN_MS, 1);
+          var angle2 = windEndAngle + (finalTarget + overshoot - windEndAngle) * decelEase(t2);
+          disc.style.transform = 'rotate(' + angle2.toFixed(2) + 'deg)';
+          tick(angle2);
+          if(t2 >= 1){ phase = 'settle'; phaseStart = ts; }
+          requestAnimationFrame(frame);
+          return;
+        }
+
+        var t3 = Math.min(elapsed / SETTLE_MS, 1);
+        var wobble = Math.exp(-5.2 * t3) * Math.cos(t3 * Math.PI * 2.4);
+        disc.style.transform = 'rotate(' + (finalTarget + overshoot * wobble).toFixed(2) + 'deg)';
+        if(t3 >= 1){
+          disc.style.transform = 'rotate(' + finalTarget + 'deg)';
+          finishSpin();
+          return;
+        }
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
     });
 
-    claimBtn.addEventListener('click', function(){
-      var modal = document.getElementById('dateModal');
-      modal.hidden = false;
-      modal.setAttribute('aria-hidden', 'false');
-    });
+    claimBtn.addEventListener('click', openDateModal);
   })();
 
   (function initDateModal(){
@@ -2516,12 +2763,8 @@
     var timeInput = document.getElementById('timeInput');
     if(!modal) return;
 
-    function close(){
-      modal.hidden = true;
-      modal.setAttribute('aria-hidden', 'true');
-    }
-    backdrop.addEventListener('click', close);
-    cancelBtn.addEventListener('click', close);
+    backdrop.addEventListener('click', closeDateModal);
+    cancelBtn.addEventListener('click', closeDateModal);
 
     function pad(n){ return String(n).padStart(2, '0'); }
 
@@ -2559,7 +2802,7 @@
       openMailto(mailto);
       flyPaperPlane();
 
-      close();
+      closeDateModal();
       showToast('saved to your calendar — see you then 💌', 4200);
       setTimeout(function(){
         revealSection(document.getElementById('endingPhase'), 800, function(){
@@ -2582,7 +2825,8 @@
   function driftPetals(){
     var canvas = document.getElementById('petals');
     var ctx = canvas.getContext('2d');
-    function size(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+    var host = canvas.parentElement; // .bloom — canvas is sized to its section, not the viewport
+    function size(){ canvas.width = host.clientWidth; canvas.height = host.clientHeight; }
     size(); addEventListener('resize', size);
 
     var colors = ['#e8799f','#f2c76b','#ffc9dc','#fff8ef'];
@@ -2635,7 +2879,9 @@
     var petals = [];
     for(var i=0;i<38;i++){ petals.push(makePetal(true)); }
 
+    var running = false, rafId = null;
     function frame(){
+      if(!running) return;
       ctx.clearRect(0,0,canvas.width,canvas.height);
       petals.forEach(function(p){
         p.drift += p.driftSpeed;
@@ -2647,9 +2893,29 @@
         }
         drawPetal(p);
       });
-      requestAnimationFrame(frame);
+      rafId = requestAnimationFrame(frame);
     }
-    requestAnimationFrame(frame);
+    function start(){ if(running) return; running = true; rafId = requestAnimationFrame(frame); }
+    function stop(){ running = false; if(rafId) cancelAnimationFrame(rafId); rafId = null; }
+
+    // this used to run forever, unconditionally, for the rest of the tab's life — stop
+    // spending a frame budget on a reveal-scene effect once she's scrolled past it (and
+    // resume if she scrolls back up), and pause outright while the tab is backgrounded
+    if('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){ entry.isIntersecting ? start() : stop(); });
+      }, { threshold: 0 });
+      io.observe(host);
+    } else {
+      start();
+    }
+    document.addEventListener('visibilitychange', function(){
+      if(document.hidden){ stop(); }
+      else {
+        var r = host.getBoundingClientRect();
+        if(r.bottom > 0 && r.top < innerHeight){ start(); }
+      }
+    });
   }
 
   function burstConfetti(){
@@ -2729,3 +2995,5 @@
   }
 })();
 </script>
+</body>
+</html>
