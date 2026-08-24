@@ -659,6 +659,71 @@
     margin:2.4rem 0 0;
   }
 
+  /* darkens + blurs the grid behind it (still faintly visible through the blur) until
+     the right birth date is entered — a positioned child paints after the grid's plain
+     static content regardless of DOM order, so no z-index juggling needed */
+  .gallery-lock{
+    position:absolute; inset:0;
+    /* explicit, not relying on default positioned-vs-static stacking order — the gallery
+       cards' perspective/transform-style:preserve-3d (for the flip) create their own 3D
+       compositing context that doesn't reliably stay under a plain-positioned sibling
+       without one; confirmed live: without this the lock painted on top only at some
+       points on screen and not others, letting clicks through to cards underneath it. */
+    z-index:5;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:.5rem;
+    padding:2rem;
+    text-align:center;
+    background:rgba(20,14,20,.62);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    transition:opacity 500ms ease;
+  }
+  .gallery-lock.unlocked{ opacity:0; pointer-events:none; }
+  .gallery-lock-icon{ filter:drop-shadow(0 6px 10px rgba(0,0,0,.4)); margin-bottom:.2rem; }
+  .gallery-lock-title{
+    font-family:ui-serif,Georgia,serif; font-style:italic;
+    color:#fff; font-size:1.05rem; margin:0;
+  }
+  .gallery-lock-sub{
+    font-family:ui-monospace,monospace; font-size:.68rem;
+    color:#e8d8de; opacity:.75; margin:0 0 .5rem;
+  }
+  .gallery-lock-input{
+    font-family:ui-monospace,monospace; font-size:1rem; letter-spacing:.05em;
+    text-align:center;
+    padding:.7rem 1rem;
+    border-radius:8px;
+    border:1.5px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    width:min(190px,70vw);
+  }
+  .gallery-lock-input::placeholder{ color:rgba(255,255,255,.4); }
+  .gallery-lock-input:focus{ outline:2px solid var(--bloom-pink-deep); outline-offset:2px; border-color:var(--bloom-pink-deep); }
+  .gallery-lock-btn{
+    font-family:ui-monospace,monospace; font-size:.78rem;
+    padding:.6rem 1.6rem; border-radius:24px; border:none;
+    background:var(--bloom-pink-deep); color:#fff; cursor:pointer;
+    margin-top:.3rem;
+    transition:background 150ms ease;
+  }
+  .gallery-lock-btn:hover{ background:#d96f92; }
+  .gallery-lock-error{
+    font-family:ui-monospace,monospace; font-size:.7rem;
+    color:#ffb4c6; margin:.4rem 0 0;
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .gallery-lock.shake{ animation:galleryLockShake 400ms ease; }
+    @keyframes galleryLockShake{
+      0%,100%{ transform:translateX(0); }
+      20%{ transform:translateX(-8px); }
+      40%{ transform:translateX(7px); }
+      60%{ transform:translateX(-5px); }
+      80%{ transform:translateX(3px); }
+    }
+  }
+
   /* ---------- GIFT (spam-to-open box + wishlist) ---------- */
   .gift{
     position:fixed; inset:0; overflow-y:auto;
@@ -1651,6 +1716,19 @@
 
 <section class="gallery" id="galleryPhase" hidden>
   <p class="letter-eyebrow">a few of my favorites</p>
+  <div class="gallery-lock" id="galleryLock">
+    <svg class="gallery-lock-icon" viewBox="0 0 24 28" width="42" height="48" aria-hidden="true">
+      <path d="M6 12 V8 a6 6 0 0 1 12 0 v4" fill="none" stroke="#fff8ef" stroke-width="2.4" stroke-linecap="round"/>
+      <rect x="2" y="12" width="20" height="14" rx="3" fill="#fff8ef"/>
+      <circle cx="12" cy="18" r="2.1" fill="#5c2f42"/>
+      <rect x="11" y="19" width="2" height="4" rx="1" fill="#5c2f42"/>
+    </svg>
+    <p class="gallery-lock-title">these are just for you</p>
+    <p class="gallery-lock-sub">enter your birth date to unlock</p>
+    <input class="gallery-lock-input" id="galleryLockInput" type="text" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off" aria-label="birth date, day slash month slash year">
+    <button class="gallery-lock-btn" id="galleryLockBtn" type="button">unlock</button>
+    <p class="gallery-lock-error" id="galleryLockError" hidden>that's not quite right — try again</p>
+  </div>
   <div class="gallery-grid">
     <div class="gallery-card">
       <div class="gallery-card-inner">
@@ -2596,13 +2674,60 @@
           if(n < LETTER_COUNT){
             showSlide(letterSlideEl(n + 1), 900, function(){ enterLetterSlide(n + 1); });
           } else {
+            // continue stays locked until the birth-date lock over the grid is solved —
+            // see initGalleryLock()
             showSlide(document.getElementById('galleryPhase'), 800, function(){
-              unlockControl(document.getElementById('galleryContinueBtn'));
+              var lockInput = document.getElementById('galleryLockInput');
+              if(lockInput){ lockInput.focus(); }
             });
           }
         });
       })(n);
     }
+  })();
+
+  (function initGalleryLock(){
+    var lock = document.getElementById('galleryLock');
+    var input = document.getElementById('galleryLockInput');
+    var btn = document.getElementById('galleryLockBtn');
+    var errorEl = document.getElementById('galleryLockError');
+    if(!lock) return;
+
+    var UNLOCK_DAY = 31, UNLOCK_MONTH = 8, UNLOCK_YEAR = 2005; // her birth date — change if wrong
+
+    function tryUnlock(){
+      var parts = input.value.trim().replace(/[.\- ]/g, '/').split('/');
+      var ok = false;
+      if(parts.length === 3){
+        var d = parseInt(parts[0], 10), m = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
+        ok = (d === UNLOCK_DAY && m === UNLOCK_MONTH && y === UNLOCK_YEAR);
+      }
+      if(ok){
+        errorEl.hidden = true;
+        lock.classList.add('unlocked');
+        playChime();
+        setTimeout(function(){
+          lock.hidden = true;
+          unlockControl(document.getElementById('galleryContinueBtn'));
+        }, reduced ? 0 : 550);
+      } else {
+        errorEl.hidden = false;
+        playBoop();
+        input.value = '';
+        input.focus();
+        if(!reduced){
+          lock.classList.remove('shake');
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){ lock.classList.add('shake'); });
+          });
+        }
+      }
+    }
+
+    btn.addEventListener('click', tryUnlock);
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ tryUnlock(); }
+    });
   })();
 
   (function initGallery(){
