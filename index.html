@@ -1680,6 +1680,11 @@
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function reveal(){
+    // locked from the very first click — nothing to scroll into yet anyway (letterPhase
+    // is still hidden), but this also covers the reveal's own on-screen animation (card
+    // drift, letter-A bloom) so she can't scroll around mid-sequence and miss it.
+    // driftCard() hands off to revealSection()'s own lock once the letter unlocks.
+    lockScroll();
     warmAudio();
     playBlip();
     voidPhase.classList.add('glitching');
@@ -1717,13 +1722,14 @@
   function driftCard(){
     var carry = document.querySelector('.frame-carry');
     var card = document.querySelector('.frame');
-    if(!carry || !card) return;
+    if(!carry || !card){ unlockScroll(); return; } // never leave the page permanently un-scrollable
 
     if(reduced){
       carry.style.opacity = '1';
       // bloomLetterA/bloomHeart both no-op under reduced motion by design (see their own
       // `if(reduced) return`) — but the letter section still needs to unlock, or a
       // reduced-motion visitor gets stuck on the reveal forever
+      unlockScroll(); // hand off to revealSection()'s own lock, which fires immediately below
       revealSection(document.getElementById('letterPhase'), 900);
       return;
     }
@@ -1784,6 +1790,7 @@
         // instant the void->bloom transition happened. keep it hidden until the reveal
         // has actually finished playing out.
         setTimeout(function(){
+          unlockScroll(); // hand off to revealSection()'s own lock, which fires immediately below
           revealSection(document.getElementById('letterPhase'), 900);
         }, 2200);
       }
@@ -2221,19 +2228,40 @@
   // `settleMs` is how long that section's own entrance animation actually takes; `onSettled`
   // fires only once it's genuinely done, so whatever lets her continue can stay locked
   // until then instead of being clickable mid-animation.
+  // reference-counted so overlapping locks (a section entrance mid-settle while the photo
+  // lightbox also opens, say) don't have one release the other's lock early
+  var scrollLockCount = 0;
+  function lockScroll(){
+    scrollLockCount++;
+    document.body.style.overflow = 'hidden';
+  }
+  function unlockScroll(){
+    scrollLockCount = Math.max(0, scrollLockCount - 1);
+    if(scrollLockCount === 0){ document.body.style.overflow = ''; }
+  }
+
   function revealSection(el, settleMs, onSettled){
     if(!el) return;
     el.hidden = false;
+    // she could otherwise just keep scrolling straight through a section's entrance —
+    // nothing but a disabled continue-button was ever actually stopping her. lock
+    // scroll for exactly the same settle window that already gates the button, so
+    // "locked until the entrance finishes" is true of the whole page, not just the button
+    lockScroll();
     el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
     if(reduced){
       el.classList.add('entered');
+      unlockScroll();
       if(onSettled) onSettled();
       return;
     }
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){ el.classList.add('entered'); });
     });
-    if(onSettled){ setTimeout(onSettled, settleMs || 800); }
+    setTimeout(function(){
+      unlockScroll();
+      if(onSettled) onSettled();
+    }, settleMs || 800);
   }
 
   // shared keyboard-accessibility helper for the two modals (date picker, photo lightbox):
@@ -2272,6 +2300,7 @@
     if(!modal) return;
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
+    lockScroll();
     if(!dateModalTrap){ dateModalTrap = makeFocusTrap(modal.querySelector('.date-modal-card')); }
     dateModalTrap.activate(document.getElementById('dateInput'));
   }
@@ -2280,6 +2309,7 @@
     if(!modal || modal.hidden) return;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
+    unlockScroll();
     if(dateModalTrap){ dateModalTrap.deactivate(); }
   }
   document.addEventListener('keydown', function(e){
@@ -2419,13 +2449,13 @@
       inner.innerHTML = src ? src.innerHTML : '';
       lightbox.classList.add('open');
       lightbox.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
+      lockScroll();
       trap.activate(btnClose);
     }
     function close(){
       lightbox.classList.remove('open');
       lightbox.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
+      unlockScroll();
       trap.deactivate();
     }
 
