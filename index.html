@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Static Bloom</title>
 <style>
+  /* the slide classes below set their own `display` (flex, for centering) — an author
+     rule beats the UA [hidden]{display:none} rule at equal specificity regardless of
+     source order, so without this override every slide stayed display:flex even with
+     the hidden attribute set, all stacking on top of each other as position:fixed and
+     swallowing clicks meant for whatever was actually supposed to be on top. */
+  [hidden]{ display:none !important; }
+
   :root{
     --void: #121017;
     --void-surface: #1d1a24;
