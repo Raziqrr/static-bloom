@@ -1095,6 +1095,62 @@
     transform:translateX(-50%) translateY(0);
   }
 
+  /* ---------- CUT CAKE ---------- */
+  .cake-btn{
+    opacity:0;
+    transform:translateY(10px);
+    transition:opacity 600ms ease, transform 600ms ease;
+    margin-top:2.4rem;
+  }
+  .cake-btn.visible{ opacity:1; transform:translateY(0); }
+
+  .cutcake{
+    position:fixed; inset:0; overflow-y:auto;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    background:var(--grain), var(--bloom-cream);
+    background-repeat:repeat,no-repeat;
+    background-blend-mode:multiply;
+    padding:9vh 6vw;
+    /* a knife cursor for the whole section — tip near the top-left of the blade so the
+       point (not the handle) is what actually lines up with where she's pointing */
+    cursor:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg stroke='%235c2f42' stroke-width='1.3' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M3 5 L13 3 L29 19 L23 25 L7 9 Z' fill='%23eceaf2'/%3E%3Cpath d='M23 25 L29 19 L30 20 L24 26 Z' fill='%23c9c6d6'/%3E%3Crect x='19.5' y='20.5' width='13' height='6.5' rx='2.5' transform='rotate(45 26 24)' fill='%235c2f42'/%3E%3C/g%3E%3C/svg%3E")
+      4 4, auto;
+  }
+  .cutcake-content{
+    display:flex; flex-direction:column; align-items:center; gap:1.3rem;
+  }
+  .cutcake-art{ width:min(220px,55vw); }
+  .cutcake-flame{
+    transform-box:fill-box;
+    transform-origin:50% 100%;
+    transition:opacity 450ms ease, transform 450ms ease;
+  }
+  .cutcake-flame.blown{ opacity:0; transform:scale(.25) translateY(5px); }
+  @media (prefers-reduced-motion:no-preference){
+    .cutcake-flame.swaying{ animation:cakeFlameSway 260ms ease; }
+    @keyframes cakeFlameSway{
+      0%,100%{ transform:rotate(0deg) scale(1); }
+      30%{ transform:rotate(-24deg) scale(.9,1.1); }
+      60%{ transform:rotate(18deg) scale(1.06,.92); }
+    }
+    .cutcake-art.cut{ animation:cakeCutPunch 420ms ease; }
+    @keyframes cakeCutPunch{
+      0%{ transform:scale(1) rotate(0deg); }
+      30%{ transform:scale(.94,1.05) rotate(-2deg); }
+      60%{ transform:scale(1.04,.96) rotate(1.5deg); }
+      100%{ transform:scale(1) rotate(0deg); }
+    }
+  }
+  .cutcake-hint{
+    font-family:ui-monospace,monospace;
+    font-size:.72rem;
+    color:var(--bloom-ink-soft);
+    opacity:.7;
+    margin:0;
+  }
+
   /* ---------- ENDING ---------- */
   .ending{
     position:fixed; inset:0; overflow-y:auto;
@@ -1468,6 +1524,31 @@
     </div></div>
 
     <div class="bloom-loop"><span></span><span></span><span></span></div>
+    <button class="continue-btn cake-btn" id="cutCakeBtn" type="button" disabled hidden>cut your cake 🎂</button>
+  </div>
+</section>
+
+<section class="cutcake" id="cutCakePhase" hidden>
+  <p class="letter-eyebrow">make a wish</p>
+  <div class="cutcake-content">
+    <div class="cutcake-art" id="cutCakeArt">
+      <svg viewBox="0 0 36 36" width="100%" height="100%">
+        <ellipse fill="#d9a7a0" cx="18" cy="26" rx="18" ry="10"/>
+        <ellipse fill="#fff3e6" cx="18" cy="24.25" rx="18" ry="10"/>
+        <path fill="#e8799f" d="M32.675 23.685c0 4.26-6.57 7.712-14.675 7.712S3.325 27.945 3.325 23.685c0-4.258 6.57-7.711 14.675-7.711 8.104 0 14.675 3.453 14.675 7.711z"/>
+        <path fill="#ffd6e6" d="M32.233 22.543c0 9.854-28.466 9.854-28.466 0v-8.759h28.466v8.759z"/>
+        <path fill="#e8799f" d="M17.984 18.166c-8.984 0-14.218-4.132-14.218-4.132s-.016.924-.016 1.685c0 0 .032 4.898 2.572 4.898 2.459 0 2.28 2.348 3.834 2.591 1.541.241 1.712-.938 3.625-.938s2.25 2.106 4.203 2.106c2.289 0 2.477-2.106 4.389-2.106s2.132 1.224 3.386.885c1.507-.408.814-2.537 3.887-2.537 2.54 0 2.603-4.648 2.603-4.648 0-.76-.017-1.935-.017-1.935s-5.263 4.131-14.248 4.131z"/>
+        <path fill="#f2a3c2" d="M32.675 12.737c0 4.259-6.57 7.712-14.675 7.712S3.325 16.996 3.325 12.737 9.895 5.025 18 5.025c8.104 0 14.675 3.453 14.675 7.712z"/>
+        <path fill="#fffaf0" d="M25.664 13.784c-.605 0-1.095-.49-1.095-1.095V5.025c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .605-.49 1.095-1.095 1.095z"/>
+        <path class="cutcake-flame" fill="#f2c76b" d="M25.664 6.667c-1.162 0-2.076-.532-2.445-1.423-.32-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
+        <path fill="#fffaf0" d="M18 17.068c-.605 0-1.095-.49-1.095-1.095V8.31c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .604-.49 1.094-1.095 1.094z"/>
+        <path class="cutcake-flame" fill="#f2c76b" d="M18 9.952c-1.162 0-2.076-.532-2.445-1.423-.321-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
+        <path fill="#fffaf0" d="M10.336 13.784c-.605 0-1.095-.49-1.095-1.095V5.025c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .605-.49 1.095-1.095 1.095z"/>
+        <path class="cutcake-flame" fill="#f2c76b" d="M10.336 6.667c-1.162 0-2.076-.532-2.445-1.423-.321-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
+      </svg>
+    </div>
+    <p class="cutcake-hint" id="cutCakeHint">swipe to blow out the candles</p>
+    <button class="continue-btn cake-btn" id="cutCakeContinueBtn" type="button" disabled hidden>continue →</button>
   </div>
 </section>
 
@@ -1778,9 +1859,9 @@
     if(reduced){
       carry.style.opacity = '1';
       // bloomLetterA/bloomHeart both no-op under reduced motion by design (see their own
-      // `if(reduced) return`) — but the letter slides still need to unlock, or a
+      // `if(reduced) return`) — but the cake button still needs to unlock, or a
       // reduced-motion visitor gets stuck on the reveal forever
-      showSlide(document.getElementById('letter1Phase'), 900, function(){ enterLetterSlide(1); });
+      unlockCakeButton();
       return;
     }
 
@@ -1835,12 +1916,10 @@
         bloomLetterA(rect);
         bloomHeart(rect);
         playChime();
-        // the first letter slide stays hidden until the reveal (card drift, confetti,
-        // letter A, heart) has actually finished playing out, not the instant the
-        // void->bloom transition happens.
-        setTimeout(function(){
-          showSlide(document.getElementById('letter1Phase'), 900, function(){ enterLetterSlide(1); });
-        }, 2200);
+        // the cake button stays locked until the reveal (card drift, confetti, letter A,
+        // heart) has actually finished playing out, not the instant the void->bloom
+        // transition happens.
+        setTimeout(unlockCakeButton, 2200);
       }
     }
     requestAnimationFrame(frame);
@@ -2278,7 +2357,7 @@
   // onSettled once that entrance has actually finished — not the instant it appears —
   // so whatever lets her continue stays locked until then.
   var SLIDE_IDS = [
-    'bloomPhase','letter1Phase','letter2Phase','letter3Phase','letter4Phase',
+    'bloomPhase','cutCakePhase','letter1Phase','letter2Phase','letter3Phase','letter4Phase',
     'letter5Phase','letter6Phase','galleryPhase','giftPhase','toolatePhase','endingPhase'
   ];
   function hideSlide(el){
@@ -2310,6 +2389,22 @@
       if(id !== el.id){ hideSlide(document.getElementById(id)); }
     });
     revealSection(el, settleMs, onSettled);
+  }
+
+  // the reveal doesn't jump straight into the letter anymore — it hands off to a
+  // "cut your cake" button inside the still-visible bloom slide instead
+  function unlockCakeButton(){
+    var btn = document.getElementById('cutCakeBtn');
+    if(!btn) return;
+    btn.hidden = false;
+    if(reduced){
+      btn.classList.add('visible');
+    } else {
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ btn.classList.add('visible'); });
+      });
+    }
+    unlockControl(btn);
   }
 
   // shared keyboard-accessibility helper for the two modals (date picker, photo lightbox):
@@ -2400,6 +2495,97 @@
     };
     if(reduced){ light(); return; }
     setTimeout(light, 500);
+  }
+
+  (function initCakeButton(){
+    var btn = document.getElementById('cutCakeBtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      showSlide(document.getElementById('cutCakePhase'), 900, function(){ initCutCakeSlide(); });
+    });
+  })();
+
+  // runs once, the first time the cut-cake slide is actually shown — sets up the
+  // swipe-to-blow gesture and the knife-cursor "cut" click. reduced-motion visitors
+  // skip the swipe requirement entirely: the sway/extinguish animation IS the feedback
+  // that a swipe registered, so without it there'd be nothing telling her it worked.
+  var cutCakeStarted = false;
+  function initCutCakeSlide(){
+    if(cutCakeStarted) return;
+    cutCakeStarted = true;
+
+    var section = document.getElementById('cutCakePhase');
+    var art = document.getElementById('cutCakeArt');
+    var flames = Array.prototype.slice.call(document.querySelectorAll('.cutcake-flame'));
+    var hint = document.getElementById('cutCakeHint');
+    var continueBtn = document.getElementById('cutCakeContinueBtn');
+    var blownCount = 0;
+    var cut = false;
+
+    function blowOne(){
+      if(blownCount >= flames.length) return;
+      var flame = flames[blownCount];
+      blownCount++;
+      playWhoosh();
+      if(reduced){
+        flame.classList.add('blown');
+      } else {
+        flame.classList.add('swaying');
+        setTimeout(function(){
+          flame.classList.remove('swaying');
+          flame.classList.add('blown');
+        }, 220);
+      }
+      if(blownCount < flames.length){
+        hint.textContent = 'keep swiping...';
+      } else {
+        hint.textContent = 'now cut it';
+      }
+    }
+
+    if(reduced){
+      // no swipe gesture to detect under reduced motion — all candles start blown out
+      flames.forEach(function(f){ f.classList.add('blown'); });
+      hint.textContent = 'tap the cake to cut it';
+    } else {
+      var lastX = null, lastT = 0, cooldownUntil = 0;
+      function onMove(clientX, t){
+        if(blownCount >= flames.length || t < cooldownUntil) { lastX = clientX; lastT = t; return; }
+        if(lastX !== null){
+          var dx = clientX - lastX;
+          var dt = t - lastT;
+          if(dt > 0 && dt < 220 && Math.abs(dx) > 55){
+            blowOne();
+            cooldownUntil = t + 260;
+          }
+        }
+        lastX = clientX; lastT = t;
+      }
+      section.addEventListener('mousemove', function(e){ onMove(e.clientX, performance.now()); });
+      section.addEventListener('touchmove', function(e){
+        var t = e.touches[0];
+        if(t){ onMove(t.clientX, performance.now()); }
+      }, { passive: true });
+    }
+
+    art.addEventListener('click', function(){
+      if(blownCount < flames.length || cut) return;
+      cut = true;
+      art.classList.add('cut');
+      playPop();
+      if(!reduced){
+        var rect = art.getBoundingClientRect();
+        burstAt(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
+      setTimeout(function(){
+        revealSection(continueBtn, 500);
+        unlockControl(continueBtn);
+      }, reduced ? 0 : 450);
+    });
+
+    continueBtn.addEventListener('click', function(){
+      showSlide(document.getElementById('letter1Phase'), 900, function(){ enterLetterSlide(1); });
+    });
   }
 
   (function initLetterSlides(){
