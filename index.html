@@ -2884,8 +2884,8 @@
     });
 
     window.addEventListener('mousemove', function(e){
+      if(!isDown) return; // only while an actual drag is held — not on every hover
       trackVelocity(e.clientX);
-      if(!isDown) return;
       var dx = e.clientX - startX;
       if(Math.abs(dx) > 4){ moved = true; }
       timeline.scrollLeft = startScrollLeft - dx;
