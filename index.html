@@ -3350,32 +3350,44 @@
       requestAnimationFrame(frame);
     }
 
-    // the actual visual cut: builds two clip polygons from wherever she actually dragged
-    // (not a fixed line), swaps the single whole-cake artwork for two clipped copies of
-    // it, and slides them apart perpendicular to the cut she drew
+    // the actual visual cut: takes the ANGLE of wherever she dragged, but re-anchors
+    // the actual cutting line through the cake's own center rather than through her
+    // literal start/end points, and keeps that angle away from horizontal. two things
+    // were producing the "cropped in a box" look on a real drag, both invisible when
+    // testing with a clean diagonal: an off-center line slices the round cake into a
+    // thin sliver plus a big flat-bottomed remainder, and a near-horizontal line (the
+    // same shallow, mostly-sideways shape as the candle-blow swipe right above this,
+    // which is probably the gesture she'd naturally repeat) cuts this side-view
+    // illustration into two flat rectangular layers rather than a wedge - both
+    // geometrically correct for the literal line drawn, but neither looks like a cut
+    // cake. anchoring through the center and clamping the angle away from horizontal
+    // guarantees a wedge-shaped pair of halves for any drag she actually makes.
+    var CAKE_CX = 18, CAKE_CY = 19;
     function cutAlong(a, b){
       var dx = b.x - a.x, dy = b.y - a.y;
       var len = Math.hypot(dx, dy) || 1;
       var ux = dx / len, uy = dy / len;
-      var ext = 60; // viewBox is 36x36 — this comfortably overshoots it either direction
-      var p1 = { x: a.x - ux * ext, y: a.y - uy * ext };
-      var p2 = { x: b.x + ux * ext, y: b.y + uy * ext };
-      // an N-gon approximating the cake's actual round silhouette, not a rectangular
-      // bounding box — clipping against a plain rectangle looked right in theory (the
-      // math was correct) but wrong in practice: wherever the cut line didn't happen to
-      // reach the box's straight edges, the kept piece's outline just followed those
-      // edges instead of the cake's roundness, so a piece could render as a rectangular
-      // or triangular fragment with a corner of empty box sticking out past the actual
-      // cake artwork — exactly the "cropped in a box" look. an ellipse close to the
-      // cake's own footprint (the plate/base layers span roughly x:0-36, y:14-34; this
-      // is sized a bit larger to also cover the candles up top) clips into a proper
-      // wedge shape instead, however the line happens to cross it.
-      var box = [];
-      var CAKE_SIDES = 32, CAKE_CX = 18, CAKE_CY = 19, CAKE_RX = 17, CAKE_RY = 19;
-      for(var cs = 0; cs < CAKE_SIDES; cs++){
-        var cakeAng = (cs / CAKE_SIDES) * Math.PI * 2;
-        box.push({ x: CAKE_CX + CAKE_RX * Math.cos(cakeAng), y: CAKE_CY + CAKE_RY * Math.sin(cakeAng) });
+      var MIN_VERTICAL = 0.5; // sin(30deg) - the steepness floor a cut angle can't go below
+      if(Math.abs(uy) < MIN_VERTICAL){
+        var vSign = uy < 0 ? -1 : 1;
+        var hSign = ux < 0 ? -1 : 1;
+        uy = MIN_VERTICAL * vSign;
+        ux = hSign * Math.sqrt(1 - uy * uy);
       }
+      var ext = 60; // viewBox is 36x36 — this comfortably overshoots it either direction
+      var p1 = { x: CAKE_CX - ux * ext, y: CAKE_CY - uy * ext };
+      var p2 = { x: CAKE_CX + ux * ext, y: CAKE_CY + uy * ext };
+      // the wedge's roundness comes entirely from the cake artwork's own paths (the
+      // plate/frosting layers are already drawn round) - this box only needs to fully
+      // contain that artwork so the half-plane cut doesn't clip any of it away. an
+      // earlier version here used an ellipse sized to what looked like the cake's
+      // footprint, but the actual artwork's bbox is effectively the full 0,0-36,36
+      // viewBox (checked via getBBox on every child of #cakeWhole - the plate layers
+      // alone span x:0-36), and that ellipse undershot it by about a unit on every
+      // side; the plate's edges were quietly being clipped off along with everything
+      // this was meant to fix. a rectangle with generous padding beyond the viewBox
+      // can't undershoot like that.
+      var box = [ { x: -6, y: -6 }, { x: 42, y: -6 }, { x: 42, y: 42 }, { x: -6, y: 42 } ];
 
       var pieceA = clipToHalfPlane(box, p1, p2);
       var pieceB = clipToHalfPlane(box, p2, p1);
