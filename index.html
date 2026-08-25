@@ -693,9 +693,9 @@
   }
   .gallery-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(175px,1fr));
     gap:1.1rem;
-    max-width:760px;
+    max-width:860px;
     margin:0 auto;
   }
   /* the zoom-to-center animation (see initGallery) targets THIS wrapper, kept
@@ -1732,18 +1732,34 @@
          flourish reused 4x via mirroring transforms rather than 4 separate paths, plus
          a border, a center diamond, and a few star specks - an original interpretation
          of "ornate glowing card back", not a trace of any specific reference art. -->
-    <path id="cardFlourish" d="M2,2 C12,2 20,7 24,18 C17,13 11,11 5,13 C11,17 13,23 11,29 C4,21 2,10 2,2 Z"/>
+    <!-- a bolder, stroke-first redraw: the first pass (thin 2px fill-based flourish)
+         washed out to near-invisible at the card's actual ~140-175px rendered size, and
+         the flourish shape itself read as a generic curled leaf rather than the
+         reference's more angular, pointed heraldic linework - this version leans on
+         thicker glowing strokes throughout (echoing the reference's linework-over-glow
+         look, not solid fills) and a noticeably bigger, brighter center diamond, since
+         both are the two elements that actually carry the "enchanted card" read at
+         small sizes. -->
+    <radialGradient id="cardDiamondGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff4fa3" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#ff4fa3" stop-opacity="0"/>
+    </radialGradient>
+    <path id="cardFlourish" d="M4,4 L34,4 M4,4 L4,34 M4,4 L26,26 M4,16 C14,16 16,14 16,4 M16,4 C16,12 20,16 28,16"
+      fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     <g id="cardOrnament">
-      <rect x="7" y="7" width="186" height="236" rx="6" fill="none" stroke="#ff4fa3" stroke-width="2" opacity=".5"/>
-      <rect x="86" y="112" width="26" height="26" transform="rotate(45 99 125)" fill="none" stroke="#ffb3da" stroke-width="1.6" opacity=".45"/>
-      <use href="#cardFlourish" fill="#ff8fc7" opacity=".4" transform="translate(0,0)"/>
-      <use href="#cardFlourish" fill="#ff8fc7" opacity=".4" transform="translate(200,0) scale(-1,1)"/>
-      <use href="#cardFlourish" fill="#ff8fc7" opacity=".4" transform="translate(0,250) scale(1,-1)"/>
-      <use href="#cardFlourish" fill="#ff8fc7" opacity=".4" transform="translate(200,250) scale(-1,-1)"/>
-      <use href="#sparkleStar" fill="#fff0f7" opacity=".7" transform="translate(26,42) scale(.4)"/>
-      <use href="#sparkleStar" fill="#fff0f7" opacity=".55" transform="translate(172,58) scale(.3)"/>
-      <use href="#sparkleStar" fill="#fff0f7" opacity=".6" transform="translate(28,204) scale(.32)"/>
-      <use href="#sparkleStar" fill="#fff0f7" opacity=".5" transform="translate(168,214) scale(.26)"/>
+      <rect x="9" y="9" width="182" height="232" rx="8" fill="none" stroke="#ff4fa3" stroke-width="5" opacity=".8"/>
+      <rect x="15" y="15" width="170" height="220" rx="5" fill="none" stroke="#ffd6ec" stroke-width="1.4" opacity=".45"/>
+      <circle cx="99" cy="125" r="34" fill="url(#cardDiamondGlow)"/>
+      <rect x="76" y="102" width="46" height="46" transform="rotate(45 99 125)" fill="none" stroke="#ffb3da" stroke-width="3.2" opacity=".75"/>
+      <rect x="86" y="112" width="26" height="26" transform="rotate(45 99 125)" fill="none" stroke="#fff0f7" stroke-width="1.6" opacity=".8"/>
+      <use href="#cardFlourish" stroke="#ff8fc7" stroke-width="3.2" opacity=".85" transform="translate(9,9)"/>
+      <use href="#cardFlourish" stroke="#ff8fc7" stroke-width="3.2" opacity=".85" transform="translate(191,9) scale(-1,1)"/>
+      <use href="#cardFlourish" stroke="#ff8fc7" stroke-width="3.2" opacity=".85" transform="translate(9,241) scale(1,-1)"/>
+      <use href="#cardFlourish" stroke="#ff8fc7" stroke-width="3.2" opacity=".85" transform="translate(191,241) scale(-1,-1)"/>
+      <use href="#sparkleStar" fill="#fff0f7" opacity=".75" transform="translate(26,42) scale(.55)"/>
+      <use href="#sparkleStar" fill="#fff0f7" opacity=".6" transform="translate(172,58) scale(.4)"/>
+      <use href="#sparkleStar" fill="#fff0f7" opacity=".65" transform="translate(28,204) scale(.44)"/>
+      <use href="#sparkleStar" fill="#fff0f7" opacity=".55" transform="translate(168,214) scale(.36)"/>
     </g>
   </defs>
 </svg>
