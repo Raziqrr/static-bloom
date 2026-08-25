@@ -1207,6 +1207,14 @@
       60%{ transform:scale(1.04,.96) rotate(1.5deg); }
       100%{ transform:scale(1) rotate(0deg); }
     }
+    .cutcake-art.nudge{ animation:cakeNudgeShake 340ms ease; }
+    @keyframes cakeNudgeShake{
+      0%,100%{ transform:translateX(0); }
+      20%{ transform:translateX(-6px); }
+      40%{ transform:translateX(5px); }
+      60%{ transform:translateX(-4px); }
+      80%{ transform:translateX(2px); }
+    }
   }
   .cutcake-hint{
     font-family:ui-monospace,monospace;
@@ -2451,13 +2459,17 @@
   function revealSection(el, settleMs, onSettled){
     if(!el) return;
     el.hidden = false;
+    // 'entered' drives the slide/section fade-in transition; 'visible' drives the
+    // separate .cake-btn fade-in (cutCakeContinueBtn, cutCakeBtn) — adding both means
+    // this one function correctly reveals either kind of element instead of silently
+    // leaving a .cake-btn stuck at opacity:0 forever because only 'entered' got added
     if(reduced){
-      el.classList.add('entered');
+      el.classList.add('entered', 'visible');
       if(onSettled) onSettled();
       return;
     }
     requestAnimationFrame(function(){
-      requestAnimationFrame(function(){ el.classList.add('entered'); });
+      requestAnimationFrame(function(){ el.classList.add('entered', 'visible'); });
     });
     if(onSettled){ setTimeout(onSettled, settleMs || 800); }
   }
@@ -2626,18 +2638,24 @@
       flames.forEach(function(f){ f.classList.add('blown'); });
       hint.textContent = 'tap the cake to cut it';
     } else {
-      var lastX = null, lastT = 0, cooldownUntil = 0;
+      // tracks CUMULATIVE movement across a rolling ~260ms window, not the delta between
+      // two adjacent events — a real swipe fires mousemove many times with small deltas
+      // each (every ~8-16ms), so comparing only consecutive events almost never sees a
+      // single jump big enough to register; a real swipe's *total* distance over that
+      // window is what actually needs to cross the threshold
+      var windowX = null, windowT = 0, cooldownUntil = 0;
       function onMove(clientX, t){
-        if(blownCount >= flames.length || t < cooldownUntil) { lastX = clientX; lastT = t; return; }
-        if(lastX !== null){
-          var dx = clientX - lastX;
-          var dt = t - lastT;
-          if(dt > 0 && dt < 220 && Math.abs(dx) > 55){
-            blowOne();
-            cooldownUntil = t + 260;
-          }
+        if(blownCount >= flames.length || t < cooldownUntil) return;
+        if(windowX === null || t - windowT > 260){
+          windowX = clientX;
+          windowT = t;
+          return;
         }
-        lastX = clientX; lastT = t;
+        if(Math.abs(clientX - windowX) > 40){
+          blowOne();
+          cooldownUntil = t + 260;
+          windowX = null;
+        }
       }
       section.addEventListener('mousemove', function(e){ onMove(e.clientX, performance.now()); });
       section.addEventListener('touchmove', function(e){
@@ -2647,7 +2665,19 @@
     }
 
     art.addEventListener('click', function(){
-      if(blownCount < flames.length || cut) return;
+      if(cut) return;
+      if(blownCount < flames.length){
+        // a click before she's blown every candle out used to just silently do nothing —
+        // give it a shake and a nudge instead of leaving her wondering if it's broken
+        hint.textContent = 'blow out the candles first';
+        if(!reduced){
+          art.classList.remove('nudge');
+          requestAnimationFrame(function(){
+            requestAnimationFrame(function(){ art.classList.add('nudge'); });
+          });
+        }
+        return;
+      }
       cut = true;
       art.classList.add('cut');
       playPop();
