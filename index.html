@@ -1197,13 +1197,31 @@
   .cutcake-content{
     display:flex; flex-direction:column; align-items:center; gap:1.3rem;
   }
-  .cutcake-art{ width:min(220px,55vw); }
+  .cutcake-art{ width:min(220px,55vw); aspect-ratio:1/1; user-select:none; -webkit-user-select:none; touch-action:none; }
   .cutcake-flame{
     transform-box:fill-box;
     transform-origin:50% 100%;
     transition:opacity 450ms ease, transform 450ms ease;
   }
   .cutcake-flame.blown{ opacity:0; transform:scale(.25) translateY(5px); }
+  /* the live line she's dragging across the cake before release */
+  .cutcake-drag-line{
+    stroke:#5c2f42;
+    stroke-width:1.1;
+    stroke-dasharray:2 1.3;
+    stroke-linecap:round;
+    opacity:0;
+    pointer-events:none;
+  }
+  .cutcake-drag-line.active{ opacity:.85; }
+  /* the two actual cut pieces — clipped to whatever line she drew, populated and shown
+     only once a cut is committed; .cakeWhole stays the visible cake up to that point */
+  .cutcake-half{ opacity:0; }
+  .cutcake-half.shown{ opacity:1; }
+  @media (prefers-reduced-motion:no-preference){
+    .cutcake-half{ transition:transform 480ms cubic-bezier(.22,.8,.28,1); }
+    .cutcake-half.split{ transform:translate(var(--tx,0), var(--ty,0)); }
+  }
   @media (prefers-reduced-motion:no-preference){
     .cutcake-flame.swaying{ animation:cakeFlameSway 260ms ease; }
     @keyframes cakeFlameSway{
@@ -1616,19 +1634,28 @@
   <p class="letter-eyebrow">make a wish</p>
   <div class="cutcake-content">
     <div class="cutcake-art" id="cutCakeArt">
-      <svg viewBox="0 0 36 36" width="100%" height="100%">
-        <ellipse fill="#d9a7a0" cx="18" cy="26" rx="18" ry="10"/>
-        <ellipse fill="#fff3e6" cx="18" cy="24.25" rx="18" ry="10"/>
-        <path fill="#e8799f" d="M32.675 23.685c0 4.26-6.57 7.712-14.675 7.712S3.325 27.945 3.325 23.685c0-4.258 6.57-7.711 14.675-7.711 8.104 0 14.675 3.453 14.675 7.711z"/>
-        <path fill="#ffd6e6" d="M32.233 22.543c0 9.854-28.466 9.854-28.466 0v-8.759h28.466v8.759z"/>
-        <path fill="#e8799f" d="M17.984 18.166c-8.984 0-14.218-4.132-14.218-4.132s-.016.924-.016 1.685c0 0 .032 4.898 2.572 4.898 2.459 0 2.28 2.348 3.834 2.591 1.541.241 1.712-.938 3.625-.938s2.25 2.106 4.203 2.106c2.289 0 2.477-2.106 4.389-2.106s2.132 1.224 3.386.885c1.507-.408.814-2.537 3.887-2.537 2.54 0 2.603-4.648 2.603-4.648 0-.76-.017-1.935-.017-1.935s-5.263 4.131-14.248 4.131z"/>
-        <path fill="#f2a3c2" d="M32.675 12.737c0 4.259-6.57 7.712-14.675 7.712S3.325 16.996 3.325 12.737 9.895 5.025 18 5.025c8.104 0 14.675 3.453 14.675 7.712z"/>
-        <path fill="#fffaf0" d="M25.664 13.784c-.605 0-1.095-.49-1.095-1.095V5.025c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .605-.49 1.095-1.095 1.095z"/>
-        <path class="cutcake-flame" fill="#f2c76b" d="M25.664 6.667c-1.162 0-2.076-.532-2.445-1.423-.32-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
-        <path fill="#fffaf0" d="M18 17.068c-.605 0-1.095-.49-1.095-1.095V8.31c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .604-.49 1.094-1.095 1.094z"/>
-        <path class="cutcake-flame" fill="#f2c76b" d="M18 9.952c-1.162 0-2.076-.532-2.445-1.423-.321-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
-        <path fill="#fffaf0" d="M10.336 13.784c-.605 0-1.095-.49-1.095-1.095V5.025c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .605-.49 1.095-1.095 1.095z"/>
-        <path class="cutcake-flame" fill="#f2c76b" d="M10.336 6.667c-1.162 0-2.076-.532-2.445-1.423-.321-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
+      <svg id="cutCakeSvg" viewBox="0 0 36 36" width="100%" height="100%">
+        <defs>
+          <clipPath id="cutClipA" clipPathUnits="userSpaceOnUse"><polygon id="cutClipAPoly" points="-4,-4 40,-4 40,40 -4,40"/></clipPath>
+          <clipPath id="cutClipB" clipPathUnits="userSpaceOnUse"><polygon id="cutClipBPoly" points="-4,-4 40,-4 40,40 -4,40"/></clipPath>
+        </defs>
+        <g id="cakeWhole">
+          <ellipse fill="#d9a7a0" cx="18" cy="26" rx="18" ry="10"/>
+          <ellipse fill="#fff3e6" cx="18" cy="24.25" rx="18" ry="10"/>
+          <path fill="#e8799f" d="M32.675 23.685c0 4.26-6.57 7.712-14.675 7.712S3.325 27.945 3.325 23.685c0-4.258 6.57-7.711 14.675-7.711 8.104 0 14.675 3.453 14.675 7.711z"/>
+          <path fill="#ffd6e6" d="M32.233 22.543c0 9.854-28.466 9.854-28.466 0v-8.759h28.466v8.759z"/>
+          <path fill="#e8799f" d="M17.984 18.166c-8.984 0-14.218-4.132-14.218-4.132s-.016.924-.016 1.685c0 0 .032 4.898 2.572 4.898 2.459 0 2.28 2.348 3.834 2.591 1.541.241 1.712-.938 3.625-.938s2.25 2.106 4.203 2.106c2.289 0 2.477-2.106 4.389-2.106s2.132 1.224 3.386.885c1.507-.408.814-2.537 3.887-2.537 2.54 0 2.603-4.648 2.603-4.648 0-.76-.017-1.935-.017-1.935s-5.263 4.131-14.248 4.131z"/>
+          <path fill="#f2a3c2" d="M32.675 12.737c0 4.259-6.57 7.712-14.675 7.712S3.325 16.996 3.325 12.737 9.895 5.025 18 5.025c8.104 0 14.675 3.453 14.675 7.712z"/>
+          <path fill="#fffaf0" d="M25.664 13.784c-.605 0-1.095-.49-1.095-1.095V5.025c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .605-.49 1.095-1.095 1.095z"/>
+          <path class="cutcake-flame" fill="#f2c76b" d="M25.664 6.667c-1.162 0-2.076-.532-2.445-1.423-.32-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
+          <path fill="#fffaf0" d="M18 17.068c-.605 0-1.095-.49-1.095-1.095V8.31c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .604-.49 1.094-1.095 1.094z"/>
+          <path class="cutcake-flame" fill="#f2c76b" d="M18 9.952c-1.162 0-2.076-.532-2.445-1.423-.321-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
+          <path fill="#fffaf0" d="M10.336 13.784c-.605 0-1.095-.49-1.095-1.095V5.025c0-.605.49-1.095 1.095-1.095s1.095.49 1.095 1.095v7.664c0 .605-.49 1.095-1.095 1.095z"/>
+          <path class="cutcake-flame" fill="#f2c76b" d="M10.336 6.667c-1.162 0-2.076-.532-2.445-1.423-.321-.773-.479-2.45 2.058-4.986.214-.214.56-.214.774 0 2.537 2.537 2.378 4.213 2.058 4.986-.369.891-1.283 1.423-2.445 1.423z"/>
+        </g>
+        <g id="cakeHalfA" class="cutcake-half" clip-path="url(#cutClipA)"></g>
+        <g id="cakeHalfB" class="cutcake-half" clip-path="url(#cutClipB)"></g>
+        <line id="cutDragLine" class="cutcake-drag-line" x1="0" y1="0" x2="0" y2="0"/>
       </svg>
     </div>
     <p class="cutcake-hint" id="cutCakeHint">swipe to blow out the candles</p>
@@ -2648,20 +2675,17 @@
       }, { passive: true });
     }
 
-    art.addEventListener('click', function(){
-      if(cut) return;
-      if(blownCount < flames.length){
-        // a click before she's blown every candle out used to just silently do nothing —
-        // give it a shake and a nudge instead of leaving her wondering if it's broken
-        hint.textContent = 'blow out the candles first';
-        if(!reduced){
-          art.classList.remove('nudge');
-          requestAnimationFrame(function(){
-            requestAnimationFrame(function(){ art.classList.add('nudge'); });
-          });
-        }
-        return;
+    function nudgeNotReady(msg){
+      hint.textContent = msg;
+      if(!reduced){
+        art.classList.remove('nudge');
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){ art.classList.add('nudge'); });
+        });
       }
+    }
+
+    function finishCut(){
       cut = true;
       art.classList.add('cut');
       playPop();
@@ -2673,7 +2697,152 @@
         revealSection(continueBtn, 500);
         unlockControl(continueBtn);
       }, reduced ? 0 : 450);
-    });
+    }
+
+    if(reduced){
+      // no drag geometry under reduced motion — a single tap makes a plain straight cut,
+      // pieces appear already split, no line-drawing or slide-apart transition
+      art.addEventListener('click', function(){
+        if(cut) return;
+        if(blownCount < flames.length){ nudgeNotReady('blow out the candles first'); return; }
+        cutAlong({ x: 18, y: -4 }, { x: 18, y: 40 });
+        finishCut();
+      });
+    } else {
+      var svg = document.getElementById('cutCakeSvg');
+      var dragLine = document.getElementById('cutDragLine');
+      var dragging = false, dragStart = null, dragCurrent = null;
+
+      function svgPoint(clientX, clientY){
+        var pt = svg.createSVGPoint();
+        pt.x = clientX; pt.y = clientY;
+        var ctm = svg.getScreenCTM();
+        if(!ctm) return { x: 18, y: 18 };
+        var p = pt.matrixTransform(ctm.inverse());
+        return { x: p.x, y: p.y };
+      }
+      function startDrag(clientX, clientY){
+        if(cut) return;
+        if(blownCount < flames.length){ nudgeNotReady('blow out the candles first'); return; }
+        dragging = true;
+        dragStart = svgPoint(clientX, clientY);
+        dragCurrent = dragStart;
+        dragLine.setAttribute('x1', dragStart.x); dragLine.setAttribute('y1', dragStart.y);
+        dragLine.setAttribute('x2', dragStart.x); dragLine.setAttribute('y2', dragStart.y);
+        dragLine.classList.add('active');
+        hint.textContent = 'drag across the cake';
+      }
+      function moveDrag(clientX, clientY){
+        if(!dragging) return;
+        dragCurrent = svgPoint(clientX, clientY);
+        dragLine.setAttribute('x2', dragCurrent.x);
+        dragLine.setAttribute('y2', dragCurrent.y);
+      }
+      function endDrag(){
+        if(!dragging) return;
+        dragging = false;
+        dragLine.classList.remove('active');
+        var dx = dragCurrent.x - dragStart.x, dy = dragCurrent.y - dragStart.y;
+        if(Math.hypot(dx, dy) < 14){
+          // too short to be a real cut attempt (viewBox is 36 wide — this is well under
+          // half of it) — treat as an accidental tap/wobble, not a committed line
+          hint.textContent = 'drag a line across the cake to cut it';
+          return;
+        }
+        cutAlong(dragStart, dragCurrent);
+        finishCut();
+      }
+
+      art.addEventListener('mousedown', function(e){ startDrag(e.clientX, e.clientY); });
+      document.addEventListener('mousemove', function(e){ moveDrag(e.clientX, e.clientY); });
+      document.addEventListener('mouseup', function(){ endDrag(); });
+      art.addEventListener('touchstart', function(e){
+        var t = e.touches[0];
+        if(t){ startDrag(t.clientX, t.clientY); }
+      }, { passive: true });
+      art.addEventListener('touchmove', function(e){
+        var t = e.touches[0];
+        if(t){ moveDrag(t.clientX, t.clientY); }
+      }, { passive: true });
+      art.addEventListener('touchend', function(){ endDrag(); });
+    }
+
+    // clips a box to the half-plane on one side of a line — Sutherland-Hodgman against
+    // a single edge. run twice (line, then the same line reversed) to get both halves.
+    function sideOf(a, b, p){ return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x); }
+    function lineIntersect(p1, p2, a, b){
+      var d1x = p2.x - p1.x, d1y = p2.y - p1.y;
+      var d2x = b.x - a.x, d2y = b.y - a.y;
+      var denom = d1x * d2y - d1y * d2x;
+      if(Math.abs(denom) < 1e-9) return p1;
+      var t = ((a.x - p1.x) * d2y - (a.y - p1.y) * d2x) / denom;
+      return { x: p1.x + t * d1x, y: p1.y + t * d1y };
+    }
+    function clipToHalfPlane(poly, a, b){
+      var out = [];
+      var n = poly.length;
+      for(var i = 0; i < n; i++){
+        var cur = poly[i], prev = poly[(i - 1 + n) % n];
+        var curSide = sideOf(a, b, cur), prevSide = sideOf(a, b, prev);
+        if(curSide >= 0){
+          if(prevSide < 0){ out.push(lineIntersect(prev, cur, a, b)); }
+          out.push(cur);
+        } else if(prevSide >= 0){
+          out.push(lineIntersect(prev, cur, a, b));
+        }
+      }
+      return out;
+    }
+    function toPointsAttr(poly){
+      return poly.map(function(p){ return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
+    }
+
+    // the actual visual cut: builds two clip polygons from wherever she actually dragged
+    // (not a fixed line), swaps the single whole-cake artwork for two clipped copies of
+    // it, and slides them apart perpendicular to the cut she drew
+    function cutAlong(a, b){
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var len = Math.hypot(dx, dy) || 1;
+      var ux = dx / len, uy = dy / len;
+      var ext = 60; // viewBox is 36x36 — this comfortably overshoots it either direction
+      var p1 = { x: a.x - ux * ext, y: a.y - uy * ext };
+      var p2 = { x: b.x + ux * ext, y: b.y + uy * ext };
+      var box = [ { x: -4, y: -4 }, { x: 40, y: -4 }, { x: 40, y: 40 }, { x: -4, y: 40 } ];
+
+      var pieceA = clipToHalfPlane(box, p1, p2);
+      var pieceB = clipToHalfPlane(box, p2, p1);
+      document.getElementById('cutClipAPoly').setAttribute('points', toPointsAttr(pieceA));
+      document.getElementById('cutClipBPoly').setAttribute('points', toPointsAttr(pieceB));
+
+      var cakeWhole = document.getElementById('cakeWhole');
+      var halfA = document.getElementById('cakeHalfA');
+      var halfB = document.getElementById('cakeHalfB');
+      halfA.innerHTML = cakeWhole.innerHTML;
+      halfB.innerHTML = cakeWhole.innerHTML;
+
+      // perpendicular to the drawn line, so the pieces separate sideways from the cut
+      // itself rather than in some fixed direction unrelated to how she actually cut it
+      var px = -uy, py = ux, mag = 13; // CSS px — a plain translate() isn't scaled by viewBox
+      halfA.style.setProperty('--tx', (px * mag).toFixed(1) + 'px');
+      halfA.style.setProperty('--ty', (py * mag).toFixed(1) + 'px');
+      halfB.style.setProperty('--tx', (-px * mag).toFixed(1) + 'px');
+      halfB.style.setProperty('--ty', (-py * mag).toFixed(1) + 'px');
+
+      cakeWhole.style.display = 'none';
+      halfA.classList.add('shown');
+      halfB.classList.add('shown');
+      if(reduced){
+        halfA.classList.add('split');
+        halfB.classList.add('split');
+      } else {
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            halfA.classList.add('split');
+            halfB.classList.add('split');
+          });
+        });
+      }
+    }
 
     continueBtn.addEventListener('click', function(){
       showSlide(document.getElementById('letterPhase'), 900);
