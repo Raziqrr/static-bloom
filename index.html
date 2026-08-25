@@ -491,7 +491,7 @@
     flex-direction:column;
     align-items:center;
     gap:.8rem;
-    width:min(200px,58vw);
+    width:min(280px,64vw);
     padding:0 2vw;
     margin-right:var(--gap, 0px); /* varies per item — see inline style on each */
     scroll-snap-align:center;
@@ -508,12 +508,13 @@
      overlapped down onto the photo's top edge like an actual pin driven into it, instead
      of sitting stacked above with a flex gap between them. --pin-depth lives here (not
      on either child alone) so the candle's overlap and the photo's rotation pivot always
-     read the same number by inheritance and can't drift apart — 28px lands solidly past
-     the 9px padding frame, inside the picture area itself, not right on its edge. */
+     read the same number by inheritance and can't drift apart — 40px (scaled up along
+     with the bigger photo below) lands solidly past the 13px padding frame, inside the
+     picture area itself, not right on its edge. */
   .photo-pin-wrap{
     position:relative;
     flex:none;
-    --pin-depth:28px;
+    --pin-depth:40px;
   }
   /* --pin-offset lives on .timeline-item (not the photo) so both the candle and the
      photo can read the same value by inheritance — the candle never rotates (a real
@@ -526,18 +527,18 @@
     position:absolute;
     left:50%;
     bottom:calc(100% - var(--pin-depth));
-    width:30px; height:58px;
+    width:42px; height:82px;
     transform:translateX(calc(-50% + var(--pin-offset, 0px)));
     z-index:2;
     pointer-events:none;
   }
   .timeline-photo{
-    width:142px; height:180px;
+    width:200px; height:254px;
     flex:none;
     background:#fffdf8;
     border-radius:1px;
     box-shadow:0 12px 22px -10px rgba(140,60,90,.4);
-    padding:9px 9px 30px;
+    padding:13px 13px 42px;
     /* rotating around dead center just spins it in place — a real pinned photo pivots
        from wherever the pin actually is, near the top edge, and each one hangs
        differently depending on how far off-center that point happens to be. rotation
@@ -617,9 +618,9 @@
     display:flex; align-items:center; justify-content:center;
     color:var(--bloom-ink-soft);
     font-family:ui-monospace,monospace;
-    font-size:.6rem;
+    font-size:.75rem;
     text-align:center;
-    padding:.4rem;
+    padding:.6rem;
   }
   .candle-flame{
     fill:#cfc8d2;
@@ -643,7 +644,7 @@
     }
   }
   .timeline-text{
-    max-width:190px;
+    max-width:270px;
     font-family:ui-serif,Georgia,"Iowan Old Style",serif;
     font-style:italic;
     color:var(--bloom-ink);
@@ -1721,7 +1722,7 @@
   <div class="timeline" id="timeline">
     <svg class="timeline-path" id="timelinePath" aria-hidden="true"></svg>
 
-    <div class="timeline-item tl-up" style="--gap:7vw; --pin-offset:-31.24px;">
+    <div class="timeline-item tl-up" style="--gap:7vw; --pin-offset:-44px;">
       <div class="photo-pin-wrap">
         <div class="candle">
           <svg viewBox="0 0 24 46" width="100%" height="100%">
@@ -1736,7 +1737,7 @@
       <p class="timeline-text">hey you.</p>
     </div>
 
-    <div class="timeline-item tl-down" style="--gap:2vw; --pin-offset:25.56px;">
+    <div class="timeline-item tl-down" style="--gap:2vw; --pin-offset:36px;">
       <div class="photo-pin-wrap">
         <div class="candle">
           <svg viewBox="0 0 24 46" width="100%" height="100%">
@@ -1751,7 +1752,7 @@
       <p class="timeline-text">[ how you want to open — what today means before the rest ]</p>
     </div>
 
-    <div class="timeline-item tl-up" style="--gap:9vw; --pin-offset:-11.36px;">
+    <div class="timeline-item tl-up" style="--gap:9vw; --pin-offset:-16px;">
       <div class="photo-pin-wrap">
         <div class="candle">
           <svg viewBox="0 0 24 46" width="100%" height="100%">
@@ -1766,7 +1767,7 @@
       <p class="timeline-text">[ something specific you love about her — not generic ]</p>
     </div>
 
-    <div class="timeline-item tl-down" style="--gap:3vw; --pin-offset:39.76px;">
+    <div class="timeline-item tl-down" style="--gap:3vw; --pin-offset:56px;">
       <div class="photo-pin-wrap">
         <div class="candle">
           <svg viewBox="0 0 24 46" width="100%" height="100%">
@@ -1781,7 +1782,7 @@
       <p class="timeline-text">[ a memory the two of you share ]</p>
     </div>
 
-    <div class="timeline-item tl-up" style="--gap:6vw; --pin-offset:-39.76px;">
+    <div class="timeline-item tl-up" style="--gap:6vw; --pin-offset:-56px;">
       <div class="photo-pin-wrap">
         <div class="candle">
           <svg viewBox="0 0 24 46" width="100%" height="100%">
@@ -1796,7 +1797,7 @@
       <p class="timeline-text">[ what you hope this year holds for her ]</p>
     </div>
 
-    <div class="timeline-item tl-down" style="--pin-offset:11.36px;">
+    <div class="timeline-item tl-down" style="--pin-offset:16px;">
       <div class="photo-pin-wrap">
         <div class="candle">
           <svg viewBox="0 0 24 46" width="100%" height="100%">
