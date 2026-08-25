@@ -493,22 +493,26 @@
   }
   /* wraps the candle + photo so the candle can be pulled out of normal flex flow and
      overlapped down onto the photo's top edge like an actual pin driven into it, instead
-     of sitting stacked above with a flex gap between them */
+     of sitting stacked above with a flex gap between them. --pin-depth lives here (not
+     on either child alone) so the candle's overlap and the photo's rotation pivot always
+     read the same number by inheritance and can't drift apart — 28px lands solidly past
+     the 9px padding frame, inside the picture area itself, not right on its edge. */
   .photo-pin-wrap{
     position:relative;
     flex:none;
+    --pin-depth:28px;
   }
   /* --pin-offset lives on .timeline-item (not the photo) so both the candle and the
      photo can read the same value by inheritance — the candle never rotates (a real
      pin doesn't swing with what's hanging off it), it just shifts sideways by the same
      amount the photo's own pivot is offset from center, so the two always land on the
      same screen point regardless of the photo's current tilt or sway. Positioned so its
-     base overlaps down to 8px from the photo's top edge — the exact point the photo
-     rotates around — so it reads as stuck into the photo, not floating above it. */
+     base overlaps down to --pin-depth from the photo's top edge — the exact point the
+     photo rotates around — so it reads as stuck into the photo, not floating above it. */
   .candle{
     position:absolute;
     left:50%;
-    bottom:calc(100% - 8px);
+    bottom:calc(100% - var(--pin-depth));
     width:30px; height:58px;
     transform:translateX(calc(-50% + var(--pin-offset, 0px)));
     z-index:2;
@@ -526,7 +530,7 @@
        differently depending on how far off-center that point happens to be. rotation
        around this exact point leaves the point itself stationary at any angle, which
        is what keeps it lined up with the (never-rotating) candle above. */
-    transform-origin:calc(50% + var(--pin-offset, 0px)) 8px;
+    transform-origin:calc(50% + var(--pin-offset, 0px)) var(--pin-depth);
     transform:rotate(var(--tilt,-3deg));
     cursor:pointer;
     transition:transform 220ms ease, box-shadow 220ms ease;
