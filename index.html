@@ -494,15 +494,17 @@
   /* nested inside .timeline-photo now (was a separate flex sibling above it) so it can
      sit exactly at the same --pin-x the photo itself pivots from, instead of always
      sitting centered above the photo regardless of where that photo actually hangs from */
+  /* --pin-offset lives on .timeline-item (not the photo) so both the candle and the
+     photo can read the same value by inheritance — the candle never rotates (a real
+     pin doesn't swing with what's hanging off it), it just shifts sideways by the same
+     amount the photo's own pivot is offset from center, so the two always land on the
+     same screen point regardless of the photo's current tilt or sway. */
   .candle{
-    position:absolute;
-    left:var(--pin-x, 50%);
-    top:-50px;
-    transform:translateX(-50%);
     width:30px; height:58px;
+    flex:none;
+    transform:translateX(var(--pin-offset, 0px));
   }
   .timeline-photo{
-    position:relative;
     width:142px; height:180px;
     flex:none;
     background:#fffdf8;
@@ -511,8 +513,10 @@
     padding:9px 9px 30px;
     /* rotating around dead center just spins it in place — a real pinned photo pivots
        from wherever the pin actually is, near the top edge, and each one hangs
-       differently depending on how far off-center that point happens to be */
-    transform-origin:var(--pin-x, 50%) 8px;
+       differently depending on how far off-center that point happens to be. rotation
+       around this exact point leaves the point itself stationary at any angle, which
+       is what keeps it lined up with the (never-rotating) candle above. */
+    transform-origin:calc(50% + var(--pin-offset, 0px)) 8px;
     transform:rotate(var(--tilt,-3deg));
     cursor:pointer;
     transition:transform 220ms ease, box-shadow 220ms ease;
@@ -1690,93 +1694,81 @@
   <div class="timeline" id="timeline">
     <svg class="timeline-path" id="timelinePath" aria-hidden="true"></svg>
 
-    <div class="timeline-item tl-up" style="--gap:7vw;">
-      <div class="timeline-photo" style="--tilt:-7deg; --pin-x:28%;">
-        <div class="candle">
-          <svg viewBox="0 0 24 46" width="100%" height="100%">
-            <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-            <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-            <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-            <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-          </svg>
-        </div>
-        <div class="timeline-photo-inner"><span>[ photo of you two, 1 ]</span></div>
+    <div class="timeline-item tl-up" style="--gap:7vw; --pin-offset:-31.24px;">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
       </div>
+      <div class="timeline-photo" style="--tilt:-7deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 1 ]</span></div></div>
       <p class="timeline-text">hey you.</p>
     </div>
 
-    <div class="timeline-item tl-down" style="--gap:2vw;">
-      <div class="timeline-photo" style="--tilt:4deg; --pin-x:68%;">
-        <div class="candle">
-          <svg viewBox="0 0 24 46" width="100%" height="100%">
-            <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-            <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-            <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-            <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-          </svg>
-        </div>
-        <div class="timeline-photo-inner"><span>[ photo of you two, 2 ]</span></div>
+    <div class="timeline-item tl-down" style="--gap:2vw; --pin-offset:25.56px;">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
       </div>
+      <div class="timeline-photo" style="--tilt:4deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 2 ]</span></div></div>
       <p class="timeline-text">[ how you want to open — what today means before the rest ]</p>
     </div>
 
-    <div class="timeline-item tl-up" style="--gap:9vw;">
-      <div class="timeline-photo" style="--tilt:5deg; --pin-x:42%;">
-        <div class="candle">
-          <svg viewBox="0 0 24 46" width="100%" height="100%">
-            <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-            <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-            <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-            <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-          </svg>
-        </div>
-        <div class="timeline-photo-inner"><span>[ photo of you two, 3 ]</span></div>
+    <div class="timeline-item tl-up" style="--gap:9vw; --pin-offset:-11.36px;">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
       </div>
+      <div class="timeline-photo" style="--tilt:5deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 3 ]</span></div></div>
       <p class="timeline-text">[ something specific you love about her — not generic ]</p>
     </div>
 
-    <div class="timeline-item tl-down" style="--gap:3vw;">
-      <div class="timeline-photo" style="--tilt:-6deg; --pin-x:78%;">
-        <div class="candle">
-          <svg viewBox="0 0 24 46" width="100%" height="100%">
-            <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-            <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-            <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-            <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-          </svg>
-        </div>
-        <div class="timeline-photo-inner"><span>[ photo of you two, 4 ]</span></div>
+    <div class="timeline-item tl-down" style="--gap:3vw; --pin-offset:39.76px;">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
       </div>
+      <div class="timeline-photo" style="--tilt:-6deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 4 ]</span></div></div>
       <p class="timeline-text">[ a memory the two of you share ]</p>
     </div>
 
-    <div class="timeline-item tl-up" style="--gap:6vw;">
-      <div class="timeline-photo" style="--tilt:-3deg; --pin-x:22%;">
-        <div class="candle">
-          <svg viewBox="0 0 24 46" width="100%" height="100%">
-            <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-            <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-            <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-            <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-          </svg>
-        </div>
-        <div class="timeline-photo-inner"><span>[ photo of you two, 5 ]</span></div>
+    <div class="timeline-item tl-up" style="--gap:6vw; --pin-offset:-39.76px;">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
       </div>
+      <div class="timeline-photo" style="--tilt:-3deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 5 ]</span></div></div>
       <p class="timeline-text">[ what you hope this year holds for her ]</p>
     </div>
 
-    <div class="timeline-item tl-down">
-      <div class="timeline-photo" style="--tilt:6deg; --pin-x:58%;">
-        <div class="candle">
-          <svg viewBox="0 0 24 46" width="100%" height="100%">
-            <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-            <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-            <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-            <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-          </svg>
-        </div>
-        <div class="timeline-photo-inner"><span>[ photo of you two, 6 ]</span></div>
+    <div class="timeline-item tl-down" style="--pin-offset:11.36px;">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
       </div>
+      <div class="timeline-photo" style="--tilt:6deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 6 ]</span></div></div>
       <p class="timeline-text">happy birthday. i mean every word. — [ your name ]</p>
     </div>
 
