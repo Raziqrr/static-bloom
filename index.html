@@ -698,6 +698,13 @@
     max-width:760px;
     margin:0 auto;
   }
+  /* the zoom-to-center animation (see initGallery) targets THIS wrapper, kept
+     separate from .gallery-card (which still carries the shake) and .gallery-card-
+     inner (which still carries the flip) so none of the three transform-animations
+     fight over the same element's transform property — CSS transforms compose across
+     nested elements, so the shake still visibly jitters, just scaled up along with
+     whatever zoom level the wrapper is at. */
+  .gallery-card-zoom{ position:relative; }
   .gallery-card{
     position:relative;
     aspect-ratio:4/5;
@@ -721,28 +728,83 @@
     box-shadow:0 14px 26px -14px rgba(0,0,0,.55);
     overflow:hidden;
   }
-  /* both faces went dark/premium (a Valorant-skin-card look — deep card body, a glowing
-     gradient trim instead of a flat border, a cut rarity corner) rather than the site's
-     usual pastel — a deliberate exception scoped to this one grid: "these are just for
-     you" already frames it as something set apart, and a vault/keepsake card reads that
-     way more than a soft birthday card would. */
+  /* both faces went dark/premium rather than the site's usual pastel — a deliberate
+     exception scoped to this one grid: "these are just for you" already frames it as
+     something set apart. front reads as a Pokemon-style stat card (name/HP row, an
+     emoji standing in for a Pokemon "type" icon — an emotion instead of an element,
+     since these are memories not monsters — an attack row, flavor text); back is an
+     original "enchanted card" interpretation (ornate border, center diamond, corner
+     flourishes, star specks — see #cardOrnament in the shared defs), not a trace of
+     any specific reference art. */
   .gallery-front{
-    background:
-      linear-gradient(115deg, transparent 42%, rgba(255,79,163,.18) 50%, transparent 58%),
-      linear-gradient(155deg,#2b1d33,#150e1b 72%);
+    display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+    gap:.35rem;
+    padding:.5rem .55rem .55rem;
+    background:linear-gradient(155deg,#2b1d33,#150e1b 72%);
     color:#e3b9cb;
     font-family:ui-monospace,monospace;
-    font-size:.68rem;
-    letter-spacing:.03em;
-    border:1px solid rgba(255,214,122,.22);
+    border:1px solid rgba(255,79,163,.28);
+    text-align:left;
   }
-  .gallery-front span{ position:relative; z-index:1; }
+  .poke-top{
+    display:flex; align-items:baseline; justify-content:space-between; gap:.4rem;
+    position:relative; z-index:1;
+  }
+  .poke-name{
+    font-size:.6rem; letter-spacing:.02em; color:#f3d8e4;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .poke-hp{ font-size:.52rem; letter-spacing:.05em; color:#ff8fc7; flex:none; }
+  .poke-hp b{ font-size:.74rem; color:#ff4fa3; margin-left:.15rem; }
+  .poke-type{
+    position:absolute; top:2.05rem; left:.5rem;
+    width:1.5rem; height:1.5rem;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.85rem; line-height:1;
+    background:radial-gradient(circle,#3a2540,#1c1220);
+    border:1px solid rgba(255,143,199,.5);
+    border-radius:50%;
+    z-index:1;
+  }
+  .poke-art{
+    flex:1; min-height:0;
+    border-radius:4px;
+    background:linear-gradient(150deg,#3a2540,#1c1220);
+    display:flex; align-items:center; justify-content:center;
+    padding:.3rem;
+    text-align:center;
+  }
+  .poke-art span{ font-family:ui-monospace,monospace; font-size:.6rem; color:#a8859a; }
+  .poke-attack{
+    display:flex; align-items:center; justify-content:space-between; gap:.4rem;
+    font-family:ui-monospace,monospace;
+    font-size:.6rem;
+    color:#f3d8e4;
+    padding-top:.3rem;
+    border-top:1px solid rgba(255,143,199,.22);
+  }
+  .poke-attack-name{ text-transform:lowercase; }
+  .poke-attack-power{ color:#ff4fa3; font-weight:bold; }
+  .poke-desc{
+    font-family:ui-serif,Georgia,"Iowan Old Style",serif;
+    font-style:italic;
+    font-size:.56rem;
+    line-height:1.35;
+    color:#b993a8;
+    margin:0;
+  }
   .gallery-back{
     background:
       linear-gradient(160deg,#2e1f38,#150e1b 78%) padding-box,
       linear-gradient(135deg,#ff4fa3,#e8799f 55%,#ffb3da) border-box;
     transform:rotateY(180deg);
     border:2px solid transparent;
+  }
+  .gallery-ornament{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    pointer-events:none;
+    z-index:0;
   }
   .gallery-back p{
     font-family:ui-serif,Georgia,"Iowan Old Style",serif;
@@ -785,23 +847,22 @@
      .flipped transition above — the drama is a one-time pull, not something that
      replays every tap. */
   .gallery-card.card-bursting{
-    z-index:22;
-    animation:galleryShake 1100ms ease-out;
+    animation:galleryShake 1300ms ease-out;
   }
   @keyframes galleryShake{
-    0%, 38%{ transform:translate(0,0); }
-    42%{ transform:translate(-4px,3px); }
-    46%{ transform:translate(4px,-3px); }
-    50%{ transform:translate(-3px,2px); }
-    54%{ transform:translate(3px,-2px); }
-    58%, 100%{ transform:translate(0,0); }
+    0%, 45%{ transform:translate(0,0); }
+    48%{ transform:translate(-4px,3px); }
+    52%{ transform:translate(4px,-3px); }
+    56%{ transform:translate(-3px,2px); }
+    60%{ transform:translate(3px,-2px); }
+    64%, 100%{ transform:translate(0,0); }
   }
   .gallery-card.card-bursting .gallery-card-inner{
-    animation:galleryDramaticFlip 1100ms cubic-bezier(.32,1.3,.34,1) forwards;
+    animation:galleryDramaticFlip 1300ms cubic-bezier(.32,1.3,.34,1) forwards;
   }
   @keyframes galleryDramaticFlip{
     0%{ transform:scale(1) rotateY(0deg); }
-    14%{ transform:scale(.86) rotateY(0deg); }
+    12%{ transform:scale(.86) rotateY(0deg); }
     50%{ transform:scale(1.22) rotateY(200deg); }
     75%{ transform:scale(1.06) rotateY(168deg); }
     100%{ transform:scale(1) rotateY(180deg); }
@@ -813,7 +874,7 @@
     pointer-events:none;
     z-index:2;
     box-shadow:0 0 0 0 rgba(255,79,163,0);
-    animation:galleryGlowPulse 1100ms ease-out forwards;
+    animation:galleryGlowPulse 1300ms ease-out forwards;
   }
   @keyframes galleryGlowPulse{
     0%{ box-shadow:0 0 0 0 rgba(255,79,163,0); }
@@ -831,7 +892,7 @@
   .gallery-card.card-bursting .gallery-burst{ opacity:1; }
   .burst-flash{ opacity:0; }
   .gallery-card.card-bursting .burst-flash{
-    animation:galleryFlash 600ms ease-out 430ms forwards;
+    animation:galleryFlash 600ms ease-out 600ms forwards;
   }
   @keyframes galleryFlash{
     0%{ opacity:0; transform:scale(.3); }
@@ -840,7 +901,7 @@
   }
   .burst-shockwave{ opacity:0; transform:scale(.1); fill:none; stroke-width:2.4; }
   .gallery-card.card-bursting .burst-shockwave{
-    animation:galleryShockwave 700ms cubic-bezier(.16,.84,.4,1) 420ms forwards;
+    animation:galleryShockwave 700ms cubic-bezier(.16,.84,.4,1) 590ms forwards;
   }
   @keyframes galleryShockwave{
     0%{ opacity:.95; transform:scale(.1); }
@@ -848,7 +909,7 @@
   }
   .burst-ray{ opacity:0; transform:scale(.2); }
   .gallery-card.card-bursting .burst-ray{
-    animation:galleryRay 650ms ease-out 420ms forwards;
+    animation:galleryRay 650ms ease-out 600ms forwards;
   }
   @keyframes galleryRay{
     0%{ opacity:0; transform:scale(.2); }
@@ -858,7 +919,7 @@
   .burst-sparkle{ opacity:0; transform:translate(0,0) scale(.3); }
   .gallery-card.card-bursting .burst-sparkle{
     animation:gallerySparkle 950ms ease-out forwards;
-    animation-delay:var(--sd,420ms);
+    animation-delay:var(--sd,600ms);
   }
   @keyframes gallerySparkle{
     0%{ opacity:0; transform:translate(0,0) scale(.3) rotate(0deg); }
@@ -874,9 +935,10 @@
     pointer-events:none;
     opacity:0;
     mix-blend-mode:soft-light;
+    z-index:1;
   }
   .gallery-card.card-bursting .gallery-back::after{
-    animation:gallerySheen 1200ms ease-out 620ms forwards;
+    animation:gallerySheen 1300ms ease-out 850ms forwards;
   }
   @keyframes gallerySheen{
     0%{ opacity:1; background-position:-60% -60%; }
@@ -1666,6 +1728,23 @@
       <stop offset="45%" stop-color="#ff4fa3" stop-opacity=".9"/>
       <stop offset="100%" stop-color="#ff4fa3" stop-opacity="0"/>
     </radialGradient>
+    <!-- the gallery-back "enchanted card" design (see .gallery-back): a single corner
+         flourish reused 4x via mirroring transforms rather than 4 separate paths, plus
+         a border, a center diamond, and a few star specks - an original interpretation
+         of "ornate glowing card back", not a trace of any specific reference art. -->
+    <path id="cardFlourish" d="M2,2 C12,2 20,7 24,18 C17,13 11,11 5,13 C11,17 13,23 11,29 C4,21 2,10 2,2 Z"/>
+    <g id="cardOrnament">
+      <rect x="7" y="7" width="186" height="236" rx="6" fill="none" stroke="#ff4fa3" stroke-width="2" opacity=".5"/>
+      <rect x="86" y="112" width="26" height="26" transform="rotate(45 99 125)" fill="none" stroke="#ffb3da" stroke-width="1.6" opacity=".45"/>
+      <use href="#cardFlourish" fill="#ff8fc7" opacity=".4" transform="translate(0,0)"/>
+      <use href="#cardFlourish" fill="#ff8fc7" opacity=".4" transform="translate(200,0) scale(-1,1)"/>
+      <use href="#cardFlourish" fill="#ff8fc7" opacity=".4" transform="translate(0,250) scale(1,-1)"/>
+      <use href="#cardFlourish" fill="#ff8fc7" opacity=".4" transform="translate(200,250) scale(-1,-1)"/>
+      <use href="#sparkleStar" fill="#fff0f7" opacity=".7" transform="translate(26,42) scale(.4)"/>
+      <use href="#sparkleStar" fill="#fff0f7" opacity=".55" transform="translate(172,58) scale(.3)"/>
+      <use href="#sparkleStar" fill="#fff0f7" opacity=".6" transform="translate(28,204) scale(.32)"/>
+      <use href="#sparkleStar" fill="#fff0f7" opacity=".5" transform="translate(168,214) scale(.26)"/>
+    </g>
   </defs>
 </svg>
 
@@ -2066,10 +2145,11 @@
   </div>
   <div class="gallery-reveal-veil" id="galleryRevealVeil" aria-hidden="true"></div>
   <div class="gallery-grid">
+    <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><span>[ photo 1 ]</span></div>
-        <div class="gallery-face gallery-back"><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 1 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">😍</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">heart eyes</span><span class="poke-attack-power">40</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
         <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
@@ -2092,10 +2172,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    </div>
+    <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><span>[ photo 2 ]</span></div>
-        <div class="gallery-face gallery-back"><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 2 ]</span><span class="poke-hp">HP<b>95</b></span></div><span class="poke-type" aria-hidden="true">🥹</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">happy tears</span><span class="poke-attack-power">35</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
         <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
@@ -2118,10 +2200,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    </div>
+    <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><span>[ photo 3 ]</span></div>
-        <div class="gallery-face gallery-back"><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 3 ]</span><span class="poke-hp">HP<b>90</b></span></div><span class="poke-type" aria-hidden="true">😂</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">the giggles</span><span class="poke-attack-power">50</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
         <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
@@ -2144,10 +2228,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    </div>
+    <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><span>[ photo 4 ]</span></div>
-        <div class="gallery-face gallery-back"><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 4 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">🥰</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">warm hug</span><span class="poke-attack-power">30</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
         <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
@@ -2170,10 +2256,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    </div>
+    <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><span>[ photo 5 ]</span></div>
-        <div class="gallery-face gallery-back"><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 5 ]</span><span class="poke-hp">HP<b>98</b></span></div><span class="poke-type" aria-hidden="true">✨</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">golden hour</span><span class="poke-attack-power">45</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
         <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
@@ -2196,10 +2284,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    </div>
+    <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><span>[ photo 6 ]</span></div>
-        <div class="gallery-face gallery-back"><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 6 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">🎉</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">best day yet</span><span class="poke-attack-power">60</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
         <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
@@ -2221,6 +2311,7 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#ffb3da" style="--tx:14px; --ty:70px; --sd:560ms"/>
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
+    </div>
     </div>
   </div>
   <p class="gallery-hint">tap a photo</p>
@@ -3579,8 +3670,10 @@
   (function initGallery(){
     var veil = document.getElementById('galleryRevealVeil');
     var revealInProgress = false;
+    var ZOOM_MS = 3100;
     document.querySelectorAll('.gallery-card').forEach(function(card){
       var revealed = false;
+      var zoomWrap = card.parentElement; // .gallery-card-zoom
       card.addEventListener('click', function(){
         // mid-reveal taps — this card or any other — are ignored rather than toggled.
         // only one pull plays at a time (the veil is shared across the whole grid), and
@@ -3590,23 +3683,46 @@
         if(revealInProgress) return;
         playRustle();
         if(!revealed){
-          // first reveal only — a gacha-pull-style flip: the whole grid dims behind
-          // #galleryRevealVeil so the pulled card is the one thing in the room, a
-          // glow builds around it, the flip overshoots with a scale pop and a
-          // screen-shake jolt at the climax, rays/sparkles/a shockwave ring burst
-          // from the center, then a holographic sheen sweeps the back once it
-          // settles. every tap after this is just the plain quick flip below — the
-          // drama is a one-time pull, not something that replays every tap.
+          // first reveal only — a gacha-pull-style pull: the card actually flies from
+          // its grid slot to screen-center and grows large (not just a scale-pop in
+          // place), the whole grid dims behind #galleryRevealVeil so it reads as the
+          // only thing in the room, a glow builds, the flip overshoots with a scale
+          // pop and a screen-shake jolt right as the zoom lands, rays/sparkles/a
+          // shockwave ring burst from the center, a holographic sheen sweeps the back,
+          // it holds at a slightly-smaller-but-still-focused size long enough to read,
+          // then eases back to its grid slot. every tap after this is just the plain
+          // quick flip below — the drama is a one-time pull, not something that
+          // replays every tap.
           revealed = true;
           revealInProgress = true;
           if(veil){ veil.classList.add('active'); }
           card.classList.add('card-bursting', 'flipped');
-          setTimeout(function(){ playBoop(); playChime(); }, 420);
+
+          var zoomAnim = null;
+          if(!reduced && zoomWrap && zoomWrap.animate){
+            var rect = card.getBoundingClientRect();
+            var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+            var dx = window.innerWidth / 2 - cx, dy = window.innerHeight / 2 - cy;
+            var peakScale = Math.min(3.1, Math.max(1.9, 300 / rect.width));
+            var holdScale = peakScale * 0.68;
+            zoomWrap.style.zIndex = 22;
+            zoomAnim = zoomWrap.animate([
+              { transform: 'translate(0px,0px) scale(1)', offset: 0 },
+              { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + peakScale + ')', offset: 0.21 },
+              { transform: 'translate(' + (dx * 0.85) + 'px,' + (dy * 0.85) + 'px) scale(' + holdScale + ')', offset: 0.45 },
+              { transform: 'translate(' + (dx * 0.85) + 'px,' + (dy * 0.85) + 'px) scale(' + holdScale + ')', offset: 0.77 },
+              { transform: 'translate(0px,0px) scale(1)', offset: 1 }
+            ], { duration: ZOOM_MS, easing: 'cubic-bezier(.22,.8,.28,1)', fill: 'forwards' });
+          }
+
+          setTimeout(function(){ playBoop(); playChime(); }, 650);
           setTimeout(function(){
             card.classList.remove('card-bursting');
+            if(zoomWrap){ zoomWrap.style.zIndex = ''; }
+            if(zoomAnim){ zoomAnim.cancel(); }
             if(veil){ veil.classList.remove('active'); }
             revealInProgress = false;
-          }, 2500);
+          }, reduced ? 50 : ZOOM_MS);
         } else {
           card.classList.toggle('flipped');
         }
