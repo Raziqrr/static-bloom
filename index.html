@@ -1527,10 +1527,12 @@
      only once a cut is committed; .cakeWhole stays the visible cake up to that point */
   .cutcake-half{ opacity:0; }
   .cutcake-half.shown{ opacity:1; }
-  @media (prefers-reduced-motion:no-preference){
-    .cutcake-half{ transition:transform 480ms cubic-bezier(.22,.8,.28,1); }
-    .cutcake-half.split{ transform:translate(var(--tx,0), var(--ty,0)); }
-  }
+  /* the pull-apart motion is driven by JS setting the SVG `transform` *attribute*
+     directly (see animateHalfSplit), not a CSS transform here - a CSS `transform`
+     property on this element clips its content away entirely once translated, an
+     isolation-tested rendering bug specific to combining CSS transform with this
+     element's clip-path (clipPathUnits="userSpaceOnUse"); the SVG attribute form
+     doesn't trigger it. */
   @media (prefers-reduced-motion:no-preference){
     .cutcake-flame.swaying{ animation:cakeFlameSway 260ms ease; }
     @keyframes cakeFlameSway{
@@ -3327,6 +3329,27 @@
       return poly.map(function(p){ return p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join(' ');
     }
 
+    // tweens the SVG `transform` *attribute* from translate(0,0) to translate(tx,ty) -
+    // deliberately not a CSS transition on the CSS `transform` property, see the
+    // .cutcake-half comment in the stylesheet for why that combination breaks this
+    // element's clip-path.
+    function animateHalfSplit(el, tx, ty, duration){
+      if(reduced){
+        el.setAttribute('transform', 'translate(' + tx.toFixed(2) + ',' + ty.toFixed(2) + ')');
+        return;
+      }
+      var start = null;
+      function ease(t){ return 1 - Math.pow(1 - t, 3); }
+      function frame(ts){
+        if(start === null) start = ts;
+        var t = Math.min(1, (ts - start) / duration);
+        var e = ease(t);
+        el.setAttribute('transform', 'translate(' + (tx * e).toFixed(2) + ',' + (ty * e).toFixed(2) + ')');
+        if(t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
     // the actual visual cut: builds two clip polygons from wherever she actually dragged
     // (not a fixed line), swaps the single whole-cake artwork for two clipped copies of
     // it, and slides them apart perpendicular to the cut she drew
@@ -3337,7 +3360,22 @@
       var ext = 60; // viewBox is 36x36 — this comfortably overshoots it either direction
       var p1 = { x: a.x - ux * ext, y: a.y - uy * ext };
       var p2 = { x: b.x + ux * ext, y: b.y + uy * ext };
-      var box = [ { x: -4, y: -4 }, { x: 40, y: -4 }, { x: 40, y: 40 }, { x: -4, y: 40 } ];
+      // an N-gon approximating the cake's actual round silhouette, not a rectangular
+      // bounding box — clipping against a plain rectangle looked right in theory (the
+      // math was correct) but wrong in practice: wherever the cut line didn't happen to
+      // reach the box's straight edges, the kept piece's outline just followed those
+      // edges instead of the cake's roundness, so a piece could render as a rectangular
+      // or triangular fragment with a corner of empty box sticking out past the actual
+      // cake artwork — exactly the "cropped in a box" look. an ellipse close to the
+      // cake's own footprint (the plate/base layers span roughly x:0-36, y:14-34; this
+      // is sized a bit larger to also cover the candles up top) clips into a proper
+      // wedge shape instead, however the line happens to cross it.
+      var box = [];
+      var CAKE_SIDES = 32, CAKE_CX = 18, CAKE_CY = 19, CAKE_RX = 17, CAKE_RY = 19;
+      for(var cs = 0; cs < CAKE_SIDES; cs++){
+        var cakeAng = (cs / CAKE_SIDES) * Math.PI * 2;
+        box.push({ x: CAKE_CX + CAKE_RX * Math.cos(cakeAng), y: CAKE_CY + CAKE_RY * Math.sin(cakeAng) });
+      }
 
       var pieceA = clipToHalfPlane(box, p1, p2);
       var pieceB = clipToHalfPlane(box, p2, p1);
@@ -3351,27 +3389,21 @@
       halfB.innerHTML = cakeWhole.innerHTML;
 
       // perpendicular to the drawn line, so the pieces separate sideways from the cut
-      // itself rather than in some fixed direction unrelated to how she actually cut it
-      var px = -uy, py = ux, mag = 13; // CSS px — a plain translate() isn't scaled by viewBox
-      halfA.style.setProperty('--tx', (px * mag).toFixed(1) + 'px');
-      halfA.style.setProperty('--ty', (py * mag).toFixed(1) + 'px');
-      halfB.style.setProperty('--tx', (-px * mag).toFixed(1) + 'px');
-      halfB.style.setProperty('--ty', (-py * mag).toFixed(1) + 'px');
+      // itself rather than in some fixed direction unrelated to how she actually cut it.
+      // mag is in the SVG's own viewBox user-space units (not CSS px), so the split
+      // scales correctly with the artwork at any render size; it's applied via
+      // animateHalfSplit setting the SVG `transform` *attribute* directly rather than
+      // a CSS `transform` (see the .cutcake-half comment above for why that matters -
+      // that mismatch, not this magnitude, was what actually caused pieces to render
+      // "cropped in a box").
+      var px = -uy, py = ux, mag = 7;
+      var txA = px * mag, tyA = py * mag;
 
       cakeWhole.style.display = 'none';
       halfA.classList.add('shown');
       halfB.classList.add('shown');
-      if(reduced){
-        halfA.classList.add('split');
-        halfB.classList.add('split');
-      } else {
-        requestAnimationFrame(function(){
-          requestAnimationFrame(function(){
-            halfA.classList.add('split');
-            halfB.classList.add('split');
-          });
-        });
-      }
+      animateHalfSplit(halfA, txA, tyA, 480);
+      animateHalfSplit(halfB, -txA, -tyA, 480);
     }
 
     continueBtn.addEventListener('click', function(){
