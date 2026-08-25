@@ -2958,6 +2958,45 @@
     }catch(e){}
   }
 
+  // a bite/chomp effect for the cut-cake reveal - synthesized the same way as every
+  // other sound here (filtered noise + oscillators, no audio files), not a sourced
+  // clip. a few quick noise-burst "chomps" (each re-filtered to a different frequency
+  // so they don't sound identical) layered with a soft low thud underneath for body.
+  function playCrunch(){
+    try{
+      warmAudio();
+      if(!audioCtx) return;
+      var t0 = audioCtx.currentTime + 0.005;
+      var chomps = 4;
+      for(var i=0;i<chomps;i++){
+        var start = t0 + i * 0.125 + Math.random() * 0.02;
+        var src = audioCtx.createBufferSource();
+        src.buffer = makeNoiseBuffer(0.1);
+        var bp = audioCtx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.setValueAtTime(650 + Math.random() * 550, start);
+        bp.Q.value = 1.1;
+        var gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.24, start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.1);
+        src.connect(bp); bp.connect(gain); gain.connect(audioCtx.destination);
+        src.start(start); src.stop(start + 0.11);
+
+        var osc = audioCtx.createOscillator();
+        var og = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150 + Math.random() * 50, start);
+        osc.frequency.exponentialRampToValueAtTime(70, start + 0.08);
+        og.gain.setValueAtTime(0.0001, start);
+        og.gain.exponentialRampToValueAtTime(0.15, start + 0.01);
+        og.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
+        osc.connect(og); og.connect(audioCtx.destination);
+        osc.start(start); osc.stop(start + 0.1);
+      }
+    }catch(e){}
+  }
+
   var cat = document.getElementById('catMascot');
   if(cat){
     cat.addEventListener('click', function(){
@@ -3230,6 +3269,7 @@
       cut = true;
       art.classList.add('cut');
       playPop();
+      playCrunch();
       if(!reduced){
         var rect = art.getBoundingClientRect();
         burstAt(rect.left + rect.width / 2, rect.top + rect.height / 2);
