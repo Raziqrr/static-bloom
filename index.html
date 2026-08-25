@@ -460,16 +460,29 @@
     z-index:0;
     overflow:visible;
   }
-  .timeline-path path{
+  /* a real string strung between two pins doesn't stay taut in a straight line — it
+     sags under its own weight, and a length of twine reads as two things layered: a
+     solid cord and a lighter twist-highlight running along it. .rope-under carries the
+     weight/shape, .rope-twist is a thin dashed highlight riding on top to suggest the
+     twisted fiber, both sharing the same sagging curve so they stay perfectly stacked. */
+  .rope-under{
     fill:none;
-    stroke:var(--bloom-line);
-    stroke-width:2.5;
+    stroke:#d9b48f;
+    stroke-width:4;
     stroke-linecap:round;
     transition:stroke 700ms ease;
   }
-  .timeline-path path.lit{
-    stroke:#e2ac52;
+  .rope-twist{
+    fill:none;
+    stroke:#fdf3e4;
+    stroke-width:1.2;
+    stroke-linecap:round;
+    stroke-dasharray:3 5;
+    opacity:.8;
+    transition:stroke 700ms ease;
   }
+  .timeline-path g.lit .rope-under{ stroke:#c9822e; }
+  .timeline-path g.lit .rope-twist{ stroke:#ffe1a8; }
   .timeline-item{
     position:relative;
     z-index:1;
@@ -3060,11 +3073,12 @@
     }
     continueBtn.addEventListener('click', goToGallery);
 
-    // measures each candle's actual rendered center and draws a line through them —
-    // same technique as the original vertical version, just reading horizontal extent
-    // (scrollWidth) instead of vertical, and accounting for however far she's already
-    // scrolled the strip so the path lines up with real content position, not just
-    // whatever's currently in the visible slice of it
+    // measures each candle's actual rendered PIN point (its base, not its center — the
+    // base is what's overlapped down onto the photo, at the exact spot the photo pivots
+    // around, see --pin-depth) and strings a rope through them — same technique as the
+    // original vertical version, just reading horizontal extent (scrollWidth) instead of
+    // vertical, and accounting for however far she's already scrolled the strip so the
+    // path lines up with real content position, not just whatever's currently visible
     function buildPath(){
       var tRect = timeline.getBoundingClientRect();
       var w = timeline.scrollWidth;
@@ -3077,7 +3091,7 @@
         var r = c.getBoundingClientRect();
         return {
           x: r.left + r.width / 2 - tRect.left + timeline.scrollLeft,
-          y: r.top + r.height / 2 - tRect.top
+          y: r.bottom - tRect.top
         };
       });
 
@@ -3085,11 +3099,25 @@
       segEls = [];
       for(var i = 1; i < pts.length; i++){
         var a = pts[i - 1], b = pts[i];
-        var d = 'M' + a.x + ',' + a.y + ' L' + b.x + ',' + b.y;
-        var seg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        seg.setAttribute('d', d);
-        pathSvg.appendChild(seg);
-        segEls.push(seg);
+        // a taut string between two pins still sags under its own weight rather than
+        // running dead straight — bow the midpoint down, scaled to the span so short
+        // hops between neighboring pins sag less than long ones
+        var dist = Math.hypot(b.x - a.x, b.y - a.y);
+        var sag = Math.max(8, Math.min(22, dist * 0.08));
+        var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + sag;
+        var d = 'M' + a.x + ',' + a.y + ' Q' + mx + ',' + my + ' ' + b.x + ',' + b.y;
+
+        var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        var under = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        under.setAttribute('class', 'rope-under');
+        under.setAttribute('d', d);
+        var twist = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        twist.setAttribute('class', 'rope-twist');
+        twist.setAttribute('d', d);
+        g.appendChild(under);
+        g.appendChild(twist);
+        pathSvg.appendChild(g);
+        segEls.push(g);
       }
     }
 
