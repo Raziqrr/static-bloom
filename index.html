@@ -447,7 +447,12 @@
     -webkit-overflow-scrolling:touch;
     scroll-snap-type:x proximity;
     padding:0 8vw;
+    /* touch already scrolls this natively — a mouse doesn't have an equivalent
+       click-drag-to-scroll gesture by default, so it's added in JS (initTimelineDragScroll) */
+    cursor:grab;
+    user-select:none; -webkit-user-select:none;
   }
+  .timeline.grabbing{ cursor:grabbing; scroll-snap-type:none; }
   .timeline-path{
     position:absolute;
     left:0; top:0;
@@ -2848,6 +2853,45 @@
       showSlide(document.getElementById('letterPhase'), 900);
     });
   }
+
+  // touch already scrolls .timeline natively (finger-drag = scroll, for free); a mouse
+  // has no equivalent gesture, so click-and-drag-to-pan is added by hand here. the
+  // trickiest part isn't the scrolling itself, it's telling a drag apart from a plain
+  // click on a photo — only suppress the photo's own click if she actually moved the
+  // mouse a meaningful amount, otherwise a tap-to-open-lightbox still works normally.
+  (function initTimelineDragScroll(){
+    var timeline = document.getElementById('timeline');
+    if(!timeline) return;
+    var isDown = false, moved = false, startX = 0, startScrollLeft = 0;
+
+    timeline.addEventListener('mousedown', function(e){
+      isDown = true;
+      moved = false;
+      startX = e.clientX;
+      startScrollLeft = timeline.scrollLeft;
+      timeline.classList.add('grabbing');
+      e.preventDefault(); // stop native text/image drag-selection while panning
+    });
+
+    window.addEventListener('mousemove', function(e){
+      if(!isDown) return;
+      var dx = e.clientX - startX;
+      if(Math.abs(dx) > 4){ moved = true; }
+      timeline.scrollLeft = startScrollLeft - dx;
+    });
+
+    window.addEventListener('mouseup', function(){
+      if(!isDown) return;
+      isDown = false;
+      timeline.classList.remove('grabbing');
+    });
+
+    // capture phase so this runs before a photo's own click-to-open-lightbox handler
+    timeline.addEventListener('click', function(e){
+      if(moved){ e.stopPropagation(); e.preventDefault(); }
+      moved = false;
+    }, true);
+  })();
 
   (function initTimeline(){
     var timeline = document.getElementById('timeline');
