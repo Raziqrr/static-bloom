@@ -2783,11 +2783,21 @@
     var UNLOCK_DAY = 31, UNLOCK_MONTH = 8, UNLOCK_YEAR = 2005; // her birth date — change if wrong
 
     function tryUnlock(){
-      var parts = input.value.trim().replace(/[.\- ]/g, '/').split('/');
-      var ok = false;
-      if(parts.length === 3){
-        var d = parseInt(parts[0], 10), m = parseInt(parts[1], 10), y = parseInt(parts[2], 10);
+      var raw = input.value.trim();
+      var d, m, y, ok = false;
+      var digitsOnly = raw.replace(/\D/g, '');
+      if(digitsOnly.length === 8){
+        // no separators at all — dd mm yyyy run together, e.g. "31082005"
+        d = parseInt(digitsOnly.slice(0, 2), 10);
+        m = parseInt(digitsOnly.slice(2, 4), 10);
+        y = parseInt(digitsOnly.slice(4, 8), 10);
         ok = (d === UNLOCK_DAY && m === UNLOCK_MONTH && y === UNLOCK_YEAR);
+      } else {
+        var parts = raw.replace(/[.\- ]/g, '/').split('/');
+        if(parts.length === 3){
+          d = parseInt(parts[0], 10); m = parseInt(parts[1], 10); y = parseInt(parts[2], 10);
+          ok = (d === UNLOCK_DAY && m === UNLOCK_MONTH && y === UNLOCK_YEAR);
+        }
       }
       if(ok){
         errorEl.hidden = true;
