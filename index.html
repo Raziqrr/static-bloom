@@ -502,6 +502,10 @@
     border-radius:1px;
     box-shadow:0 12px 22px -10px rgba(140,60,90,.4);
     padding:9px 9px 30px;
+    /* rotating around dead center just spins it in place — a real pinned photo pivots
+       from wherever the pin actually is, near the top edge, and each one hangs
+       differently depending on how far off-center that point happens to be */
+    transform-origin:var(--pin-x, 50%) 8px;
     transform:rotate(var(--tilt,-3deg));
     cursor:pointer;
     transition:transform 220ms ease, box-shadow 220ms ease;
@@ -1688,7 +1692,7 @@
           <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
         </svg>
       </div>
-      <div class="timeline-photo" style="--tilt:-7deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 1 ]</span></div></div>
+      <div class="timeline-photo" style="--tilt:-7deg; --pin-x:28%;"><div class="timeline-photo-inner"><span>[ photo of you two, 1 ]</span></div></div>
       <p class="timeline-text">hey you.</p>
     </div>
 
@@ -1701,7 +1705,7 @@
           <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
         </svg>
       </div>
-      <div class="timeline-photo" style="--tilt:4deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 2 ]</span></div></div>
+      <div class="timeline-photo" style="--tilt:4deg; --pin-x:68%;"><div class="timeline-photo-inner"><span>[ photo of you two, 2 ]</span></div></div>
       <p class="timeline-text">[ how you want to open — what today means before the rest ]</p>
     </div>
 
@@ -1714,7 +1718,7 @@
           <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
         </svg>
       </div>
-      <div class="timeline-photo" style="--tilt:5deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 3 ]</span></div></div>
+      <div class="timeline-photo" style="--tilt:5deg; --pin-x:42%;"><div class="timeline-photo-inner"><span>[ photo of you two, 3 ]</span></div></div>
       <p class="timeline-text">[ something specific you love about her — not generic ]</p>
     </div>
 
@@ -1727,7 +1731,7 @@
           <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
         </svg>
       </div>
-      <div class="timeline-photo" style="--tilt:-6deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 4 ]</span></div></div>
+      <div class="timeline-photo" style="--tilt:-6deg; --pin-x:78%;"><div class="timeline-photo-inner"><span>[ photo of you two, 4 ]</span></div></div>
       <p class="timeline-text">[ a memory the two of you share ]</p>
     </div>
 
@@ -1740,7 +1744,7 @@
           <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
         </svg>
       </div>
-      <div class="timeline-photo" style="--tilt:-3deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 5 ]</span></div></div>
+      <div class="timeline-photo" style="--tilt:-3deg; --pin-x:22%;"><div class="timeline-photo-inner"><span>[ photo of you two, 5 ]</span></div></div>
       <p class="timeline-text">[ what you hope this year holds for her ]</p>
     </div>
 
@@ -1753,7 +1757,7 @@
           <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
         </svg>
       </div>
-      <div class="timeline-photo" style="--tilt:6deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 6 ]</span></div></div>
+      <div class="timeline-photo" style="--tilt:6deg; --pin-x:58%;"><div class="timeline-photo-inner"><span>[ photo of you two, 6 ]</span></div></div>
       <p class="timeline-text">happy birthday. i mean every word. — [ your name ]</p>
     </div>
 
