@@ -479,7 +479,8 @@
     align-items:center;
     gap:.8rem;
     width:min(200px,58vw);
-    padding:0 4vw;
+    padding:0 2vw;
+    margin-right:var(--gap, 0px); /* varies per item — see inline style on each */
     scroll-snap-align:center;
   }
   .timeline-item.tl-up{ transform:translateY(-32px); }
@@ -509,6 +510,11 @@
     transform:rotate(var(--tilt,-3deg)) scale(1.04);
     box-shadow:0 16px 28px -10px rgba(140,60,90,.5);
   }
+  /* the transition is what makes the hover-scale feel soft — but it fights a physics
+     sim driving transform every frame (each new value would ease toward the last
+     instead of applying immediately), so it's suspended while a photo is actively
+     swaying and handed back once its spring settles to rest */
+  .timeline-photo.swaying{ transition:none; }
 
   .photo-lightbox{
     position:fixed; inset:0;
@@ -1673,7 +1679,7 @@
   <div class="timeline" id="timeline">
     <svg class="timeline-path" id="timelinePath" aria-hidden="true"></svg>
 
-    <div class="timeline-item tl-up">
+    <div class="timeline-item tl-up" style="--gap:7vw;">
       <div class="candle">
         <svg viewBox="0 0 24 46" width="100%" height="100%">
           <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
@@ -1686,7 +1692,7 @@
       <p class="timeline-text">hey you.</p>
     </div>
 
-    <div class="timeline-item tl-down">
+    <div class="timeline-item tl-down" style="--gap:2vw;">
       <div class="candle">
         <svg viewBox="0 0 24 46" width="100%" height="100%">
           <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
@@ -1699,7 +1705,7 @@
       <p class="timeline-text">[ how you want to open — what today means before the rest ]</p>
     </div>
 
-    <div class="timeline-item tl-up">
+    <div class="timeline-item tl-up" style="--gap:9vw;">
       <div class="candle">
         <svg viewBox="0 0 24 46" width="100%" height="100%">
           <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
@@ -1712,7 +1718,7 @@
       <p class="timeline-text">[ something specific you love about her — not generic ]</p>
     </div>
 
-    <div class="timeline-item tl-down">
+    <div class="timeline-item tl-down" style="--gap:3vw;">
       <div class="candle">
         <svg viewBox="0 0 24 46" width="100%" height="100%">
           <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
@@ -1725,7 +1731,7 @@
       <p class="timeline-text">[ a memory the two of you share ]</p>
     </div>
 
-    <div class="timeline-item tl-up">
+    <div class="timeline-item tl-up" style="--gap:6vw;">
       <div class="candle">
         <svg viewBox="0 0 24 46" width="100%" height="100%">
           <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
@@ -2859,6 +2865,9 @@
   // trickiest part isn't the scrolling itself, it's telling a drag apart from a plain
   // click on a photo — only suppress the photo's own click if she actually moved the
   // mouse a meaningful amount, otherwise a tap-to-open-lightbox still works normally.
+  // this also tracks drag velocity and feeds it to a small per-photo spring simulation
+  // (initTimelineSway below) so the photos actually sway with the force of the drag
+  // instead of just rigidly following the scroll position.
   (function initTimelineDragScroll(){
     var timeline = document.getElementById('timeline');
     if(!timeline) return;
@@ -2871,9 +2880,11 @@
       startScrollLeft = timeline.scrollLeft;
       timeline.classList.add('grabbing');
       e.preventDefault(); // stop native text/image drag-selection while panning
+      trackVelocity(e.clientX);
     });
 
     window.addEventListener('mousemove', function(e){
+      trackVelocity(e.clientX);
       if(!isDown) return;
       var dx = e.clientX - startX;
       if(Math.abs(dx) > 4){ moved = true; }
@@ -2881,16 +2892,112 @@
     });
 
     window.addEventListener('mouseup', function(){
+      releaseVelocityTracking();
       if(!isDown) return;
       isDown = false;
       timeline.classList.remove('grabbing');
     });
+
+    // touch scrolls natively already — this only rides along to drive the sway, it
+    // never touches scrollLeft itself
+    timeline.addEventListener('touchstart', function(e){
+      var t = e.touches[0];
+      if(t){ trackVelocity(t.clientX); }
+    }, { passive: true });
+    timeline.addEventListener('touchmove', function(e){
+      var t = e.touches[0];
+      if(t){ trackVelocity(t.clientX); }
+    }, { passive: true });
+    timeline.addEventListener('touchend', releaseVelocityTracking);
 
     // capture phase so this runs before a photo's own click-to-open-lightbox handler
     timeline.addEventListener('click', function(e){
       if(moved){ e.stopPropagation(); e.preventDefault(); }
       moved = false;
     }, true);
+  })();
+
+  // a light spring-damper per photo: dragVelocity (set above) is the driving force,
+  // each photo's own spring pulls it back toward upright with slightly different
+  // stiffness/damping so they don't all swing in perfect lockstep — closer to hanging
+  // off a real string than one rigid block. the loop only runs while something is
+  // actually still moving and stops itself once everything settles back to rest,
+  // the same "sleep when idle" discipline as the falling-petals fix earlier.
+  var dragVelocity = 0; // px/ms, signed
+  var trackVelocity, releaseVelocityTracking;
+  (function initTimelineSway(){
+    var photos = Array.prototype.slice.call(document.querySelectorAll('.timeline-photo'));
+    if(!photos.length) return;
+
+    if(reduced){
+      trackVelocity = function(){};
+      releaseVelocityTracking = function(){};
+      return;
+    }
+
+    var springs = photos.map(function(_, i){
+      return { angle: 0, vel: 0, k: 80 + (i % 3) * 16, d: 8 + (i % 4) * 1.8 };
+    });
+    var running = false, lastTick = 0;
+    var lastX = null, lastT = 0;
+
+    trackVelocity = function(clientX){
+      var t = performance.now();
+      if(lastX !== null){
+        var dt = t - lastT;
+        if(dt > 0){
+          var v = (clientX - lastX) / dt;
+          dragVelocity = dragVelocity * 0.5 + v * 0.5; // light smoothing between samples
+        }
+      }
+      lastX = clientX; lastT = t;
+      wake();
+    };
+    releaseVelocityTracking = function(){ lastX = null; };
+
+    function tick(ts){
+      if(lastTick === 0) lastTick = ts;
+      var dt = Math.min((ts - lastTick) / 1000, 0.05); // seconds; clamped so a stalled
+                                                          // frame can't fling the sim
+      lastTick = ts;
+
+      dragVelocity *= 0.90; // decays toward zero once she stops actively moving
+
+      var targetAngle = Math.max(-22, Math.min(22, dragVelocity * -2.6));
+      var anyAwake = Math.abs(dragVelocity) > 0.01;
+
+      springs.forEach(function(s, i){
+        var force = -s.k * (s.angle - targetAngle) - s.d * s.vel;
+        s.vel += force * dt;
+        s.angle += s.vel * dt;
+        var awake = Math.abs(s.angle) > 0.05 || Math.abs(s.vel) > 0.05;
+        var photo = photos[i];
+        if(awake){
+          photo.classList.add('swaying');
+          photo.style.transform = 'rotate(var(--tilt,-3deg)) rotate(' + s.angle.toFixed(2) + 'deg)';
+          anyAwake = true;
+        } else if(s.angle !== 0 || s.vel !== 0){
+          // just settled — hand back to the CSS class (restores :hover) instead of
+          // leaving an inline style pinned at a value that happens to equal it
+          s.angle = 0; s.vel = 0;
+          photo.classList.remove('swaying');
+          photo.style.transform = '';
+        }
+      });
+
+      if(anyAwake){
+        requestAnimationFrame(tick);
+      } else {
+        running = false;
+        lastTick = 0;
+      }
+    }
+    function wake(){
+      if(running) return;
+      running = true;
+      lastTick = 0;
+      requestAnimationFrame(tick);
+    }
   })();
 
   (function initTimeline(){
