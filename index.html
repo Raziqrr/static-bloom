@@ -699,6 +699,7 @@
     margin:0 auto;
   }
   .gallery-card{
+    position:relative;
     aspect-ratio:4/5;
     perspective:1200px;
     cursor:pointer;
@@ -729,6 +730,7 @@
     background:#fff;
     transform:rotateY(180deg);
     border:1px solid var(--bloom-line);
+    overflow:hidden;
   }
   .gallery-back p{
     font-family:ui-serif,Georgia,"Iowan Old Style",serif;
@@ -737,6 +739,101 @@
     font-size:.92rem;
     line-height:1.5;
     margin:0;
+    position:relative; z-index:1;
+  }
+
+  /* the first flip of each card only (see initGallery — .revealed tracks it) plays a
+     gacha-pull-style reveal instead of the plain flip: a charge/squash, an overshoot
+     past 180deg with a scale pop at the climax, rays + sparkles bursting from the
+     center timed to that climax, a glow ring building around the card, and a
+     holographic sheen sweeping across the back once it's showing. Re-flipping the same
+     card afterward just uses the plain .flipped transition above — the drama is a
+     one-time pull moment, not something that replays every tap. */
+  .gallery-card.card-bursting .gallery-card-inner{
+    animation:galleryDramaticFlip 900ms cubic-bezier(.34,1.2,.36,1) forwards;
+  }
+  @keyframes galleryDramaticFlip{
+    0%{ transform:scale(1) rotateY(0deg); }
+    16%{ transform:scale(.9) rotateY(0deg); }
+    55%{ transform:scale(1.1) rotateY(200deg); }
+    80%{ transform:scale(1.04) rotateY(170deg); }
+    100%{ transform:scale(1) rotateY(180deg); }
+  }
+  .gallery-card.card-bursting::before{
+    content:'';
+    position:absolute; inset:-8px;
+    border-radius:12px;
+    pointer-events:none;
+    z-index:2;
+    box-shadow:0 0 0 0 rgba(255,214,122,0);
+    animation:galleryGlowPulse 900ms ease-out forwards;
+  }
+  @keyframes galleryGlowPulse{
+    0%{ box-shadow:0 0 0 0 rgba(255,214,122,0); }
+    22%{ box-shadow:0 0 20px 5px rgba(255,214,122,.85); }
+    55%{ box-shadow:0 0 38px 11px rgba(255,200,110,1), 0 0 62px 22px rgba(232,121,159,.55); }
+    100%{ box-shadow:0 0 0 0 rgba(255,214,122,0); }
+  }
+  .gallery-burst{
+    position:absolute; inset:0;
+    overflow:visible;
+    pointer-events:none;
+    z-index:3;
+    opacity:0;
+  }
+  .gallery-card.card-bursting .gallery-burst{ opacity:1; }
+  .burst-flash{ opacity:0; }
+  .gallery-card.card-bursting .burst-flash{
+    animation:galleryFlash 500ms ease-out 380ms forwards;
+  }
+  @keyframes galleryFlash{
+    0%{ opacity:0; transform:scale(.3); }
+    30%{ opacity:.9; transform:scale(1); }
+    100%{ opacity:0; transform:scale(1.5); }
+  }
+  .burst-ray{ opacity:0; transform:scale(.2); }
+  .gallery-card.card-bursting .burst-ray{
+    animation:galleryRay 550ms ease-out 380ms forwards;
+  }
+  @keyframes galleryRay{
+    0%{ opacity:0; transform:scale(.2); }
+    30%{ opacity:.95; transform:scale(1); }
+    100%{ opacity:0; transform:scale(1.5); }
+  }
+  .burst-sparkle{ opacity:0; transform:translate(0,0) scale(.3); }
+  .gallery-card.card-bursting .burst-sparkle{
+    animation:gallerySparkle 750ms ease-out forwards;
+    animation-delay:var(--sd,380ms);
+  }
+  @keyframes gallerySparkle{
+    0%{ opacity:0; transform:translate(0,0) scale(.3); }
+    18%{ opacity:1; }
+    100%{ opacity:0; transform:translate(var(--tx),var(--ty)) scale(1); }
+  }
+  .gallery-back::after{
+    content:'';
+    position:absolute; inset:0;
+    background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.75) 50%, transparent 70%);
+    background-size:250% 250%;
+    background-position:-60% -60%;
+    pointer-events:none;
+    opacity:0;
+  }
+  .gallery-card.card-bursting .gallery-back::after{
+    animation:gallerySheen 1000ms ease-out 520ms forwards;
+  }
+  @keyframes gallerySheen{
+    0%{ opacity:1; background-position:-60% -60%; }
+    100%{ opacity:0; background-position:160% 160%; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .gallery-card.card-bursting .gallery-card-inner{ animation:none; }
+    .gallery-card.card-bursting::before,
+    .gallery-card.card-bursting .gallery-burst,
+    .gallery-card.card-bursting .burst-flash,
+    .gallery-card.card-bursting .burst-ray,
+    .gallery-card.card-bursting .burst-sparkle,
+    .gallery-card.card-bursting .gallery-back::after{ animation:none; opacity:0; }
   }
   .gallery-hint{
     font-family:ui-monospace,monospace;
@@ -1484,6 +1581,18 @@
       <stop offset="45%" stop-color="#e0304f"/>
       <stop offset="100%" stop-color="#9c1230"/>
     </radialGradient>
+    <!-- gacha-style card reveal (see .gallery-card): a single ray/spark shape reused via
+         <use> at 8 rotations for the burst, and a 4-point sparkle reused for the flying
+         particles. rotation is applied on a static wrapping <g transform="rotate()">
+         rather than via CSS, since a CSS transform animation on the <use> itself would
+         silently override any transform SVG attribute on that same element. -->
+    <path id="burstRay" d="M0,-4 L5,-52 L0,-60 L-5,-52 Z"/>
+    <path id="sparkleStar" d="M0,-9 C0,-3 3,0 9,0 C3,0 0,3 0,9 C0,3 -3,0 -9,0 C-3,0 0,-3 0,-9 Z"/>
+    <radialGradient id="burstFlashGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffaf0"/>
+      <stop offset="45%" stop-color="#ffd77a" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#ffd77a" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 </svg>
 
@@ -1888,36 +1997,138 @@
         <div class="gallery-face gallery-front"><span>[ photo 1 ]</span></div>
         <div class="gallery-face gallery-back"><p>[ your remark on this one ]</p></div>
       </div>
+      <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
+        <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
+        <g transform="rotate(0)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(45)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(90)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(135)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(180)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(225)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(270)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(315)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:49px; --ty:18px; --sd:420ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:9px; --ty:51px; --sd:460ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-40px; --ty:33px; --sd:500ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:-49px; --ty:-18px; --sd:440ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-9px; --ty:-51px; --sd:480ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:40px; --ty:-33px; --sd:520ms"/>
+      </svg>
     </div>
     <div class="gallery-card">
       <div class="gallery-card-inner">
         <div class="gallery-face gallery-front"><span>[ photo 2 ]</span></div>
         <div class="gallery-face gallery-back"><p>[ your remark on this one ]</p></div>
       </div>
+      <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
+        <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
+        <g transform="rotate(0)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(45)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(90)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(135)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(180)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(225)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(270)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(315)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:49px; --ty:18px; --sd:420ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:9px; --ty:51px; --sd:460ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-40px; --ty:33px; --sd:500ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:-49px; --ty:-18px; --sd:440ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-9px; --ty:-51px; --sd:480ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:40px; --ty:-33px; --sd:520ms"/>
+      </svg>
     </div>
     <div class="gallery-card">
       <div class="gallery-card-inner">
         <div class="gallery-face gallery-front"><span>[ photo 3 ]</span></div>
         <div class="gallery-face gallery-back"><p>[ your remark on this one ]</p></div>
       </div>
+      <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
+        <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
+        <g transform="rotate(0)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(45)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(90)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(135)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(180)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(225)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(270)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(315)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:49px; --ty:18px; --sd:420ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:9px; --ty:51px; --sd:460ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-40px; --ty:33px; --sd:500ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:-49px; --ty:-18px; --sd:440ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-9px; --ty:-51px; --sd:480ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:40px; --ty:-33px; --sd:520ms"/>
+      </svg>
     </div>
     <div class="gallery-card">
       <div class="gallery-card-inner">
         <div class="gallery-face gallery-front"><span>[ photo 4 ]</span></div>
         <div class="gallery-face gallery-back"><p>[ your remark on this one ]</p></div>
       </div>
+      <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
+        <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
+        <g transform="rotate(0)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(45)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(90)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(135)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(180)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(225)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(270)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(315)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:49px; --ty:18px; --sd:420ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:9px; --ty:51px; --sd:460ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-40px; --ty:33px; --sd:500ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:-49px; --ty:-18px; --sd:440ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-9px; --ty:-51px; --sd:480ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:40px; --ty:-33px; --sd:520ms"/>
+      </svg>
     </div>
     <div class="gallery-card">
       <div class="gallery-card-inner">
         <div class="gallery-face gallery-front"><span>[ photo 5 ]</span></div>
         <div class="gallery-face gallery-back"><p>[ your remark on this one ]</p></div>
       </div>
+      <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
+        <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
+        <g transform="rotate(0)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(45)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(90)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(135)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(180)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(225)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(270)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(315)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:49px; --ty:18px; --sd:420ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:9px; --ty:51px; --sd:460ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-40px; --ty:33px; --sd:500ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:-49px; --ty:-18px; --sd:440ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-9px; --ty:-51px; --sd:480ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:40px; --ty:-33px; --sd:520ms"/>
+      </svg>
     </div>
     <div class="gallery-card">
       <div class="gallery-card-inner">
         <div class="gallery-face gallery-front"><span>[ photo 6 ]</span></div>
         <div class="gallery-face gallery-back"><p>[ your remark on this one ]</p></div>
       </div>
+      <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
+        <circle class="burst-flash" cx="0" cy="0" r="46" fill="url(#burstFlashGrad)"/>
+        <g transform="rotate(0)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(45)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(90)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(135)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(180)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(225)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <g transform="rotate(270)"><use class="burst-ray" href="#burstRay" fill="#f2c76b"/></g>
+        <g transform="rotate(315)"><use class="burst-ray" href="#burstRay" fill="#e8799f"/></g>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:49px; --ty:18px; --sd:420ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:9px; --ty:51px; --sd:460ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-40px; --ty:33px; --sd:500ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:-49px; --ty:-18px; --sd:440ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#fff6da" style="--tx:-9px; --ty:-51px; --sd:480ms"/>
+        <use class="burst-sparkle" href="#sparkleStar" fill="#ffd77a" style="--tx:40px; --ty:-33px; --sd:520ms"/>
+      </svg>
     </div>
   </div>
   <p class="gallery-hint">tap a photo</p>
@@ -3275,9 +3486,25 @@
 
   (function initGallery(){
     document.querySelectorAll('.gallery-card').forEach(function(card){
+      var revealed = false;
       card.addEventListener('click', function(){
-        card.classList.toggle('flipped');
+        // mid-reveal taps are ignored rather than toggled — .card-bursting's flip
+        // animation runs independently of the .flipped class, so removing .flipped
+        // partway through would make it snap back to the front the moment the
+        // animation's own forwards-fill gets cleaned up
+        if(card.classList.contains('card-bursting')) return;
         playRustle();
+        if(!revealed){
+          // first reveal only — a gacha-pull-style flip (glow build, overshoot,
+          // burst of rays/sparkles, holographic sheen). every tap after this is
+          // just the plain quick flip below; the drama doesn't replay.
+          revealed = true;
+          card.classList.add('card-bursting', 'flipped');
+          setTimeout(function(){ playChime(); }, 380);
+          setTimeout(function(){ card.classList.remove('card-bursting'); }, 1600);
+        } else {
+          card.classList.toggle('flipped');
+        }
       });
     });
     var continueBtn = document.getElementById('galleryContinueBtn');
