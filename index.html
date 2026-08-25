@@ -410,23 +410,17 @@
 
   /* ---------- LETTER (candlelit bending timeline) ---------- */
   .letter{
-    position:fixed; inset:0; overflow-y:auto;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center;
     background:var(--grain), var(--bloom-cream);
     background-repeat:repeat,no-repeat;
     background-blend-mode:multiply;
-    padding:9vh 6vw;
+    padding:9vh 0 6vh;
     text-align:center;
     opacity:0;
     transform:scale(.97);
     transition:opacity 800ms ease, transform 800ms cubic-bezier(.22,.8,.28,1);
   }
-  .letter-slide-content{
-    display:flex; flex-direction:column; align-items:center;
-    gap:1.3rem;
-    max-width:340px;
-  }
-  .letter-slide-content .timeline-text{ max-width:300px; }
   .letter.entered{ opacity:1; transform:scale(1); }
   .letter-eyebrow{
     font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -434,19 +428,29 @@
     text-transform:uppercase;
     font-size:.7rem;
     color:var(--bloom-ink-soft);
-    margin:0 0 5vh;
+    margin:0 0 3vh;
     text-align:center;
+    flex:none;
   }
+  /* candles connected by a line, same as the site's original concept — just running
+     sideways now instead of down the page. .timeline is the one thing that actually
+     scrolls (horizontally); the rest of the presentation stays button-only. */
   .timeline{
     position:relative;
-    max-width:580px;
-    margin:0 auto;
+    flex:1;
+    min-height:0;
+    width:100%;
+    display:flex;
+    align-items:center;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scroll-snap-type:x proximity;
+    padding:0 8vw;
   }
   .timeline-path{
     position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
+    left:0; top:0;
     pointer-events:none;
     z-index:0;
     overflow:visible;
@@ -464,16 +468,23 @@
   .timeline-item{
     position:relative;
     z-index:1;
+    flex:none;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:.8rem;
+    width:min(200px,58vw);
+    padding:0 4vw;
+    scroll-snap-align:center;
+  }
+  .timeline-item.tl-up{ transform:translateY(-32px); }
+  .timeline-item.tl-down{ transform:translateY(32px); }
+  .timeline-end{
+    flex:none;
     display:flex;
     align-items:center;
-    gap:.9rem;
-    padding-top:var(--pt,6vh);
-    padding-bottom:var(--pb,6vh);
-    padding-left:6%;
-    padding-right:6%;
+    padding:0 8vw 0 4vw;
   }
-  .timeline-item.pos-left{ justify-content:flex-start; padding-right:var(--push,22%); }
-  .timeline-item.pos-right{ justify-content:flex-end; flex-direction:row-reverse; padding-left:var(--push,22%); }
   .candle{
     width:30px; height:58px;
     flex:none;
@@ -579,13 +590,13 @@
     }
   }
   .timeline-text{
-    max-width:180px;
+    max-width:190px;
     font-family:ui-serif,Georgia,"Iowan Old Style",serif;
     font-style:italic;
     color:var(--bloom-ink);
     font-size:.94rem;
     line-height:1.5;
-    text-align:left;
+    text-align:center;
     margin:0;
     opacity:0;
     transform:translateY(16px);
@@ -1625,100 +1636,92 @@
   </div>
 </section>
 
-<section class="letter" id="letter1Phase" hidden>
+<section class="letter" id="letterPhase" hidden>
   <p class="letter-eyebrow">before you go any further</p>
-  <div class="letter-slide-content">
-    <div class="candle">
-      <svg viewBox="0 0 24 46" width="100%" height="100%">
-        <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-        <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-        <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-        <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-      </svg>
-    </div>
-    <div class="timeline-photo" style="--tilt:-7deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 1 ]</span></div></div>
-    <p class="timeline-text">hey you.</p>
-    <button class="continue-btn" type="button" disabled>continue →</button>
-  </div>
-</section>
+  <div class="timeline" id="timeline">
+    <svg class="timeline-path" id="timelinePath" aria-hidden="true"></svg>
 
-<section class="letter" id="letter2Phase" hidden>
-  <div class="letter-slide-content">
-    <div class="candle">
-      <svg viewBox="0 0 24 46" width="100%" height="100%">
-        <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-        <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-        <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-        <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-      </svg>
+    <div class="timeline-item tl-up">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
+      </div>
+      <div class="timeline-photo" style="--tilt:-7deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 1 ]</span></div></div>
+      <p class="timeline-text">hey you.</p>
     </div>
-    <div class="timeline-photo" style="--tilt:4deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 2 ]</span></div></div>
-    <p class="timeline-text">[ how you want to open — what today means before the rest ]</p>
-    <button class="continue-btn" type="button" disabled>continue →</button>
-  </div>
-</section>
 
-<section class="letter" id="letter3Phase" hidden>
-  <div class="letter-slide-content">
-    <div class="candle">
-      <svg viewBox="0 0 24 46" width="100%" height="100%">
-        <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-        <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-        <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-        <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-      </svg>
+    <div class="timeline-item tl-down">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
+      </div>
+      <div class="timeline-photo" style="--tilt:4deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 2 ]</span></div></div>
+      <p class="timeline-text">[ how you want to open — what today means before the rest ]</p>
     </div>
-    <div class="timeline-photo" style="--tilt:5deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 3 ]</span></div></div>
-    <p class="timeline-text">[ something specific you love about her — not generic ]</p>
-    <button class="continue-btn" type="button" disabled>continue →</button>
-  </div>
-</section>
 
-<section class="letter" id="letter4Phase" hidden>
-  <div class="letter-slide-content">
-    <div class="candle">
-      <svg viewBox="0 0 24 46" width="100%" height="100%">
-        <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-        <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-        <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-        <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-      </svg>
+    <div class="timeline-item tl-up">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
+      </div>
+      <div class="timeline-photo" style="--tilt:5deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 3 ]</span></div></div>
+      <p class="timeline-text">[ something specific you love about her — not generic ]</p>
     </div>
-    <div class="timeline-photo" style="--tilt:-6deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 4 ]</span></div></div>
-    <p class="timeline-text">[ a memory the two of you share ]</p>
-    <button class="continue-btn" type="button" disabled>continue →</button>
-  </div>
-</section>
 
-<section class="letter" id="letter5Phase" hidden>
-  <div class="letter-slide-content">
-    <div class="candle">
-      <svg viewBox="0 0 24 46" width="100%" height="100%">
-        <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-        <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-        <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-        <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-      </svg>
+    <div class="timeline-item tl-down">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
+      </div>
+      <div class="timeline-photo" style="--tilt:-6deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 4 ]</span></div></div>
+      <p class="timeline-text">[ a memory the two of you share ]</p>
     </div>
-    <div class="timeline-photo" style="--tilt:-3deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 5 ]</span></div></div>
-    <p class="timeline-text">[ what you hope this year holds for her ]</p>
-    <button class="continue-btn" type="button" disabled>continue →</button>
-  </div>
-</section>
 
-<section class="letter" id="letter6Phase" hidden>
-  <div class="letter-slide-content">
-    <div class="candle">
-      <svg viewBox="0 0 24 46" width="100%" height="100%">
-        <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
-        <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
-        <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
-        <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
-      </svg>
+    <div class="timeline-item tl-up">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
+      </div>
+      <div class="timeline-photo" style="--tilt:-3deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 5 ]</span></div></div>
+      <p class="timeline-text">[ what you hope this year holds for her ]</p>
     </div>
-    <div class="timeline-photo" style="--tilt:6deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 6 ]</span></div></div>
-    <p class="timeline-text">happy birthday. i mean every word. — [ your name ]</p>
-    <button class="continue-btn" type="button" disabled>continue →</button>
+
+    <div class="timeline-item tl-down">
+      <div class="candle">
+        <svg viewBox="0 0 24 46" width="100%" height="100%">
+          <rect x="9" y="16" width="6" height="26" rx="2" fill="#f5d9c0"/>
+          <rect x="9" y="16" width="2" height="26" rx="1" fill="#fff" opacity=".4"/>
+          <path class="candle-wick" d="M12,16 L12,11" stroke="#5c2f42" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="candle-flame" d="M12,12 C8.6,8.6 8.6,4 12,0 C15.4,4 15.4,8.6 12,12 Z"/>
+        </svg>
+      </div>
+      <div class="timeline-photo" style="--tilt:6deg;"><div class="timeline-photo-inner"><span>[ photo of you two, 6 ]</span></div></div>
+      <p class="timeline-text">happy birthday. i mean every word. — [ your name ]</p>
+    </div>
+
+    <div class="timeline-end">
+      <button class="continue-btn" id="letterContinueBtn" type="button" disabled>continue →</button>
+    </div>
   </div>
 </section>
 
@@ -2443,8 +2446,7 @@
   // onSettled once that entrance has actually finished — not the instant it appears —
   // so whatever lets her continue stays locked until then.
   var SLIDE_IDS = [
-    'bloomPhase','cutCakePhase','letter1Phase','letter2Phase','letter3Phase','letter4Phase',
-    'letter5Phase','letter6Phase','galleryPhase','giftPhase','toolatePhase','endingPhase'
+    'bloomPhase','cutCakePhase','letterPhase','galleryPhase','giftPhase','toolatePhase','endingPhase'
   ];
   function hideSlide(el){
     if(!el) return;
@@ -2473,11 +2475,19 @@
     });
     if(onSettled){ setTimeout(onSettled, settleMs || 800); }
   }
+  // set by initTimeline() once it's run — re-measures the candlelit path once the
+  // letter slide is actually visible (buildPath() can't get real coordinates from a
+  // display:none layout, which is all that exists at page load)
+  var rebuildTimelinePath = null;
+
   function showSlide(el, settleMs, onSettled){
     if(!el) return;
     SLIDE_IDS.forEach(function(id){
       if(id !== el.id){ hideSlide(document.getElementById(id)); }
     });
+    if(el.id === 'letterPhase' && rebuildTimelinePath){
+      requestAnimationFrame(function(){ requestAnimationFrame(rebuildTimelinePath); });
+    }
     revealSection(el, settleMs, onSettled);
   }
 
@@ -2559,32 +2569,6 @@
     if(!el) return;
     if('disabled' in el){ el.disabled = false; }
     el.classList.remove('locked');
-  }
-
-  // the letter used to be one long scroll-triggered timeline (candles lighting as they
-  // scrolled into view). presentation mode has no scroll, so it's six individual slides
-  // now — each one lights its own candle a beat after it appears (the "delay after full
-  // flow" — not the instant the slide shows), then unlocks its own continue button once
-  // that settles. LETTER_COUNT drives both the entry sequence below and the last slide's
-  // handoff into the gallery.
-  var LETTER_COUNT = 6;
-  function letterSlideEl(n){ return document.getElementById('letter' + n + 'Phase'); }
-
-  function enterLetterSlide(n){
-    var slide = letterSlideEl(n);
-    if(!slide) return;
-    var candle = slide.querySelector('.candle');
-    var text = slide.querySelector('.timeline-text');
-    var btn = slide.querySelector('.continue-btn');
-    var light = function(){
-      candle.classList.add('lit');
-      text.classList.add('revealed');
-      playRustle();
-      if(reduced){ unlockControl(btn); return; }
-      setTimeout(function(){ unlockControl(btn); }, 700);
-    };
-    if(reduced){ light(); return; }
-    setTimeout(light, 500);
   }
 
   (function initCakeButton(){
@@ -2692,28 +2676,101 @@
     });
 
     continueBtn.addEventListener('click', function(){
-      showSlide(document.getElementById('letter1Phase'), 900, function(){ enterLetterSlide(1); });
+      showSlide(document.getElementById('letterPhase'), 900);
     });
   }
 
-  (function initLetterSlides(){
-    for(var n = 1; n <= LETTER_COUNT; n++){
-      (function(n){
-        var btn = letterSlideEl(n).querySelector('.continue-btn');
-        btn.addEventListener('click', function(){
-          if(n < LETTER_COUNT){
-            showSlide(letterSlideEl(n + 1), 900, function(){ enterLetterSlide(n + 1); });
-          } else {
-            // continue stays locked until the birth-date lock over the grid is solved —
-            // see initGalleryLock()
-            showSlide(document.getElementById('galleryPhase'), 800, function(){
-              var lockInput = document.getElementById('galleryLockInput');
-              if(lockInput){ lockInput.focus(); }
-            });
-          }
-        });
-      })(n);
+  (function initTimeline(){
+    var timeline = document.getElementById('timeline');
+    var pathSvg = document.getElementById('timelinePath');
+    if(!timeline || !pathSvg) return;
+    var candles = Array.prototype.slice.call(timeline.querySelectorAll('.candle'));
+    var total = candles.length;
+    var continueBtn = document.getElementById('letterContinueBtn');
+    var segEls = [];
+
+    function goToGallery(){
+      // continue stays locked until the birth-date lock over the grid is solved —
+      // see initGalleryLock()
+      showSlide(document.getElementById('galleryPhase'), 800, function(){
+        var lockInput = document.getElementById('galleryLockInput');
+        if(lockInput){ lockInput.focus(); }
+      });
     }
+    continueBtn.addEventListener('click', goToGallery);
+
+    // measures each candle's actual rendered center and draws a line through them —
+    // same technique as the original vertical version, just reading horizontal extent
+    // (scrollWidth) instead of vertical, and accounting for however far she's already
+    // scrolled the strip so the path lines up with real content position, not just
+    // whatever's currently in the visible slice of it
+    function buildPath(){
+      var tRect = timeline.getBoundingClientRect();
+      var w = timeline.scrollWidth;
+      var h = timeline.clientHeight;
+      pathSvg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+      pathSvg.style.width = w + 'px';
+      pathSvg.style.height = h + 'px';
+
+      var pts = candles.map(function(c){
+        var r = c.getBoundingClientRect();
+        return {
+          x: r.left + r.width / 2 - tRect.left + timeline.scrollLeft,
+          y: r.top + r.height / 2 - tRect.top
+        };
+      });
+
+      pathSvg.innerHTML = '';
+      segEls = [];
+      for(var i = 1; i < pts.length; i++){
+        var a = pts[i - 1], b = pts[i];
+        var d = 'M' + a.x + ',' + a.y + ' L' + b.x + ',' + b.y;
+        var seg = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        seg.setAttribute('d', d);
+        pathSvg.appendChild(seg);
+        segEls.push(seg);
+      }
+    }
+
+    buildPath();
+    addEventListener('resize', buildPath);
+    // the slide is still hidden (display:none) at this point on page load, so this
+    // first buildPath() call measures a zero-size layout — rebuildTimelinePath lets
+    // whoever actually reveals the slide re-measure once it's real
+    rebuildTimelinePath = buildPath;
+
+    if(!('IntersectionObserver' in window) || reduced){
+      candles.forEach(function(c){
+        c.classList.add('lit');
+        var t = c.parentElement.querySelector('.timeline-text');
+        if(t){ t.classList.add('revealed'); }
+      });
+      segEls.forEach(function(s){ s.classList.add('lit'); });
+      unlockControl(continueBtn);
+      return;
+    }
+
+    // root:timeline, not the default viewport — .timeline is what actually scrolls
+    // (horizontally), the slide itself never does
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting) return;
+        var candle = entry.target;
+        if(candle.classList.contains('lit')) return;
+        candle.classList.add('lit');
+        var text = candle.parentElement.querySelector('.timeline-text');
+        if(text){ text.classList.add('revealed'); }
+        var idx = candles.indexOf(candle);
+        if(idx > 0 && segEls[idx - 1]){ segEls[idx - 1].classList.add('lit'); }
+        playRustle();
+        io.unobserve(candle);
+        if(idx === total - 1){
+          setTimeout(function(){ unlockControl(continueBtn); }, 500);
+        }
+      });
+    }, { root: timeline, threshold: 0.6 });
+
+    candles.forEach(function(c){ io.observe(c); });
   })();
 
   (function initGalleryLock(){
