@@ -1507,6 +1507,15 @@
     display:flex; flex-direction:column; align-items:center; gap:1.3rem;
   }
   .cutcake-art{ width:min(220px,55vw); aspect-ratio:1/1; user-select:none; -webkit-user-select:none; touch-action:none; }
+  /* the cake artwork already touches every edge of the 0..36 viewBox before any cut
+     (checked via getBBox on #cakeWhole's children - the plate spans the full width) -
+     once the two halves slide apart via animateHalfSplit, the half moving toward each
+     edge pushes part of its own artwork past that edge. an <svg> clips to its own box
+     by default (overflow:hidden is the UA-stylesheet default for embedded content,
+     unlike most other elements), so without this the wide outer edge of whichever
+     piece is sliding outward - exactly the part that should still be visible - was
+     being silently cut off, leaving only a narrow sliver near the cut line. */
+  #cutCakeSvg{ overflow:visible; }
   .cutcake-flame{
     transform-box:fill-box;
     transform-origin:50% 100%;
