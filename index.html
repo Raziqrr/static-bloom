@@ -457,11 +457,7 @@
     position:absolute;
     left:0; top:0;
     pointer-events:none;
-    /* z-index:1, not 0 — .timeline-item is a sealed stacking context (see its own
-       comment), so "0" would only tie against it and fall back to DOM order, which is
-       fragile. an explicit z-index above the item's effective "0" unambiguously wins,
-       putting the rope over every photo regardless of markup order. */
-    z-index:1;
+    z-index:0;
     overflow:visible;
   }
   /* a real string strung between two pins doesn't stay taut in a straight line — it
@@ -488,14 +484,8 @@
   .timeline-path g.lit .rope-under{ stroke:#c9822e; }
   .timeline-path g.lit .rope-twist{ stroke:#ffe1a8; }
   .timeline-item{
-    /* its own translateY zigzag (below) forces this into its own stacking context no
-       matter what z-index it does or doesn't carry — which means everything inside it
-       (photo AND candle together) paints as one sealed unit from a sibling's point of
-       view. a sibling like the rope can only ever land entirely above or entirely below
-       that whole unit, never wedged partway between two things inside it. that's why
-       the candle isn't styled here anymore — see .timeline-pins below for where it
-       actually lives now, and why. */
     position:relative;
+    z-index:1;
     flex:none;
     display:flex;
     flex-direction:column;
@@ -514,43 +504,30 @@
     align-items:center;
     padding:0 8vw 0 4vw;
   }
-  /* wraps just the photo now (the candle used to live in here too, see .candle below
-     for why it moved out). still earns its keep as a non-rotating reference box: only
-     .timeline-photo itself carries the rotate() transform, so this wrapper's own
-     getBoundingClientRect() always gives the photo's true unrotated position — exactly
-     what's needed to calculate where the pin belongs on screen, and it's where
-     --pin-depth (28px — solidly past the 9px padding frame, inside the picture itself,
-     not right on its edge) lives so JS and the photo's own transform-origin agree on
-     one shared number instead of two that could drift apart. */
+  /* wraps the candle + photo so the candle can be pulled out of normal flex flow and
+     overlapped down onto the photo's top edge like an actual pin driven into it, instead
+     of sitting stacked above with a flex gap between them. --pin-depth lives here (not
+     on either child alone) so the candle's overlap and the photo's rotation pivot always
+     read the same number by inheritance and can't drift apart — 28px lands solidly past
+     the 9px padding frame, inside the picture area itself, not right on its edge. */
   .photo-pin-wrap{
     position:relative;
     flex:none;
     --pin-depth:28px;
   }
-  /* the candle can't stay nested in .photo-pin-wrap/.timeline-item any more: that whole
-     branch is sealed inside .timeline-item's own stacking context (forced by its
-     translateY zigzag transform), so a sibling like the rope could only ever paint
-     entirely above or entirely below it — never wedged between the photo and the candle
-     the way a real pin sits in front of a real photo with a string caught under it.
-     JS (initTimeline) relocates every .candle into #timelinePins, a layer that's a
-     true sibling of .timeline-path rather than a captive of any one item, and
-     positions each one in pixels from its own item's --pin-offset/--pin-depth — the
-     same numbers, just read by JS instead of inherited through the DOM once nesting
-     stopped being an option. */
+  /* --pin-offset lives on .timeline-item (not the photo) so both the candle and the
+     photo can read the same value by inheritance — the candle never rotates (a real
+     pin doesn't swing with what's hanging off it), it just shifts sideways by the same
+     amount the photo's own pivot is offset from center, so the two always land on the
+     same screen point regardless of the photo's current tilt or sway. Positioned so its
+     base overlaps down to --pin-depth from the photo's top edge — the exact point the
+     photo rotates around — so it reads as stuck into the photo, not floating above it. */
   .candle{
     position:absolute;
-    left:0; top:0;
+    left:50%;
+    bottom:calc(100% - var(--pin-depth));
     width:30px; height:58px;
-    pointer-events:none;
-  }
-  /* true sibling of .timeline-path, not nested in any one item — z-index:2 puts every
-     pin above the rope (z-index:1) above the photos (z-index:auto, but sealed at an
-     effective "0" by .timeline-item's own transform) unambiguously, the stacking order
-     a real photo pinned to a string actually has: pin in front, string behind it,
-     photo behind that. */
-  .timeline-pins{
-    position:absolute;
-    left:0; top:0;
+    transform:translateX(calc(-50% + var(--pin-offset, 0px)));
     z-index:2;
     pointer-events:none;
   }
@@ -3081,21 +3058,10 @@
     var timeline = document.getElementById('timeline');
     var pathSvg = document.getElementById('timelinePath');
     if(!timeline || !pathSvg) return;
-    var items = Array.prototype.slice.call(timeline.querySelectorAll('.timeline-item'));
-    var wraps = items.map(function(item){ return item.querySelector('.photo-pin-wrap'); });
     var candles = Array.prototype.slice.call(timeline.querySelectorAll('.candle'));
     var total = candles.length;
     var continueBtn = document.getElementById('letterContinueBtn');
     var segEls = [];
-
-    // candles move out of their items into their own layer, a true sibling of
-    // .timeline-path — see the .candle/.timeline-pins CSS comments for why nesting
-    // them in the item no longer works now that the rope needs to thread between the
-    // photo and the pin rather than just sit behind (or in front of) the whole item
-    var pinsLayer = document.createElement('div');
-    pinsLayer.className = 'timeline-pins';
-    timeline.appendChild(pinsLayer);
-    candles.forEach(function(c){ pinsLayer.appendChild(c); });
 
     function goToGallery(){
       // continue stays locked until the birth-date lock over the grid is solved —
@@ -3107,38 +3073,9 @@
     }
     continueBtn.addEventListener('click', goToGallery);
 
-    // the one shared source of truth for where each pin actually sits, in timeline-
-    // content-relative coordinates (i.e. as if scrollLeft were 0, matching how an
-    // absolutely-positioned child's left/top work) — both the rope and the (now
-    // relocated) candles read from this instead of from each other, so positioning the
-    // candles doesn't depend on the rope existing yet or vice versa. Measured from each
-    // photo's own wrapper, never the photo itself, because only .timeline-photo carries
-    // the rotate() transform — the wrapper's rect is always the true unrotated position.
-    function pinPoints(){
-      var tRect = timeline.getBoundingClientRect();
-      return wraps.map(function(wrap, i){
-        var r = wrap.getBoundingClientRect();
-        var pinOffset = parseFloat(getComputedStyle(items[i]).getPropertyValue('--pin-offset')) || 0;
-        var pinDepth = parseFloat(getComputedStyle(wrap).getPropertyValue('--pin-depth')) || 0;
-        return {
-          x: r.left + r.width / 2 + pinOffset - tRect.left + timeline.scrollLeft,
-          y: r.top + pinDepth - tRect.top
-        };
-      });
-    }
-
-    function positionPins(pts){
-      candles.forEach(function(c, i){
-        // 15/58 are half of .candle's 30px width and its full 58px height, hardcoded
-        // rather than read from offsetWidth/offsetHeight — those report 0 while the
-        // slide is still hidden (display:none) at page-load time, which would place
-        // every candle wrong until the next rebuild happened to catch it
-        c.style.left = (pts[i].x - 15) + 'px';
-        c.style.top = (pts[i].y - 58) + 'px';
-      });
-    }
-
-    // measures each pin and strings a rope through them — same technique as the
+    // measures each candle's actual rendered PIN point (its base, not its center — the
+    // base is what's overlapped down onto the photo, at the exact spot the photo pivots
+    // around, see --pin-depth) and strings a rope through them — same technique as the
     // original vertical version, just reading horizontal extent (scrollWidth) instead of
     // vertical, and accounting for however far she's already scrolled the strip so the
     // path lines up with real content position, not just whatever's currently visible
@@ -3150,8 +3087,13 @@
       pathSvg.style.width = w + 'px';
       pathSvg.style.height = h + 'px';
 
-      var pts = pinPoints();
-      positionPins(pts);
+      var pts = candles.map(function(c){
+        var r = c.getBoundingClientRect();
+        return {
+          x: r.left + r.width / 2 - tRect.left + timeline.scrollLeft,
+          y: r.bottom - tRect.top
+        };
+      });
 
       pathSvg.innerHTML = '';
       segEls = [];
@@ -3187,12 +3129,11 @@
     rebuildTimelinePath = buildPath;
 
     if(!('IntersectionObserver' in window) || reduced){
-      candles.forEach(function(c, i){
+      candles.forEach(function(c){
         c.classList.add('lit');
-        // items[i], not .closest() — the candle no longer lives inside .timeline-item
-        // at all (see .timeline-pins), so there's nothing to climb up to; items and
-        // candles were captured from the same DOM order, so the indices still line up
-        var t = items[i].querySelector('.timeline-text');
+        // .closest(), not .parentElement — the candle now nests inside .timeline-photo
+        // (to sit at the photo's own pin point), not as a direct sibling of the text
+        var t = c.closest('.timeline-item').querySelector('.timeline-text');
         if(t){ t.classList.add('revealed'); }
       });
       segEls.forEach(function(s){ s.classList.add('lit'); });
@@ -3208,9 +3149,9 @@
         var candle = entry.target;
         if(candle.classList.contains('lit')) return;
         candle.classList.add('lit');
-        var idx = candles.indexOf(candle);
-        var text = items[idx].querySelector('.timeline-text');
+        var text = candle.closest('.timeline-item').querySelector('.timeline-text');
         if(text){ text.classList.add('revealed'); }
+        var idx = candles.indexOf(candle);
         if(idx > 0 && segEls[idx - 1]){ segEls[idx - 1].classList.add('lit'); }
         playRustle();
         io.unobserve(candle);
