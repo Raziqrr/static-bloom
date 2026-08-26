@@ -40,15 +40,16 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   html,body{height:100%; overflow:hidden;} /* presentation mode — advance is buttons only, never scroll */
-  /* every <button> in the site presses in with a quick squish and springs back with a
-     bit of overshoot on release (the bezier's y going above 1 is what gives the
-     "bounce past full size" snap-back, not just an ease back to 1) - this is a base
-     layer under whatever each button's own class already does for hover/position
-     (e.g. .continue-btn:hover's translateY), so it composes with those rather than
-     replacing them outside of the brief moment it's actually pressed. paired with
+  /* real slow-rising squishy toys, not a bouncy UI spring: press down is quick and
+     flattens rather than uniformly shrinking (scale(1.05,.8) - wider and shorter, like a
+     thumb actually squashing something soft), release has NO overshoot and is slow -
+     foam doesn't spring past its resting size, it just slowly re-inflates. the trick is
+     that :active's own transition (fast, for the press) only applies while pressed; the
+     instant it's released the element falls back to matching the plain `button` rule,
+     whose slow 950ms transition is what actually plays for the rise. paired with
      playSquish() (see the sound-effects block) for the audio half of the same feel. */
-  button{ transition:transform 160ms cubic-bezier(.34,1.56,.64,1); }
-  button:active:not(:disabled){ transform:scale(.88); transition-duration:70ms; }
+  button{ transition:transform 950ms cubic-bezier(.16,.9,.35,1); transform-origin:center; }
+  button:active:not(:disabled){ transform:scale(1.05,.8); transition:transform 100ms cubic-bezier(.4,0,.7,1); }
   body{
     background:var(--void);
     color:var(--void-text);
@@ -3014,26 +3015,38 @@
       warmAudio();
       if(!audioCtx) return;
       var t0 = audioCtx.currentTime + 0.002;
-      var osc = audioCtx.createOscillator();
-      var gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(320, t0);
-      osc.frequency.exponentialRampToValueAtTime(140, t0 + 0.075);
-      gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(t0); osc.stop(t0 + 0.1);
-
+      // the squelch itself: filtered noise (not a clean tone - a real squish is a soft
+      // "sqvvt" of air/foam moving, not a musical pitch), swept DOWN as it compresses
+      // then eased gently back UP as it slowly re-inflates, mirroring the CSS's own
+      // fast-press/slow-rise shape. a linear (not exponential-from-near-zero) attack
+      // keeps the onset soft instead of reading as a hard click transient.
       var src = audioCtx.createBufferSource();
-      src.buffer = makeNoiseBuffer(0.05);
-      var hp = audioCtx.createBiquadFilter();
-      hp.type = 'highpass'; hp.frequency.value = 4000;
-      var ngain = audioCtx.createGain();
-      ngain.gain.setValueAtTime(0.05, t0);
-      ngain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05);
-      src.connect(hp); hp.connect(ngain); ngain.connect(audioCtx.destination);
-      src.start(t0); src.stop(t0 + 0.05);
+      src.buffer = makeNoiseBuffer(0.27);
+      var bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.Q.value = 1.4;
+      bp.frequency.setValueAtTime(720, t0);
+      bp.frequency.exponentialRampToValueAtTime(220, t0 + 0.16);
+      bp.frequency.exponentialRampToValueAtTime(480, t0 + 0.27);
+      var gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.linearRampToValueAtTime(0.17, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.27);
+      src.connect(bp); bp.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t0); src.stop(t0 + 0.28);
+
+      // a soft, low body-thud underneath for weight - rounder and quieter than a click,
+      // never sharp enough to read as "mechanical"
+      var osc = audioCtx.createOscillator();
+      var og = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(160, t0);
+      osc.frequency.exponentialRampToValueAtTime(85, t0 + 0.14);
+      og.gain.setValueAtTime(0.0001, t0);
+      og.gain.linearRampToValueAtTime(0.12, t0 + 0.015);
+      og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+      osc.connect(og); og.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.2);
     }catch(e){}
   }
 
@@ -3048,22 +3061,40 @@
     if(btn && !btn.disabled && !btn.hasAttribute('data-no-squish')){ playSquish(); }
   });
 
-  // a quiet, quick tick per keystroke - randomized pitch so a burst of typing (the 8-digit
-  // birth date, a wishlist guess) doesn't sound like the same note repeating.
+  // "creamy" ASMR mechanical-keyboard thock (think lubed linear switches, not clicky
+  // ones) - deliberately the opposite design from playSquish: muted and LOW-passed
+  // noise instead of a bright/high-passed one, so there's no sharp click transient at
+  // all, just a soft, rounded "thock" body. a short linear attack (not instant) keeps
+  // even that onset smooth. randomized cutoff/pitch per key so a fast run of digits
+  // (the birth date, a wishlist guess) doesn't sound like the same note on repeat.
   function playKeyTick(){
     try{
       warmAudio();
       if(!audioCtx) return;
       var t0 = audioCtx.currentTime + 0.002;
-      var osc = audioCtx.createOscillator();
+      var src = audioCtx.createBufferSource();
+      src.buffer = makeNoiseBuffer(0.09);
+      var lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(950 + Math.random() * 250, t0);
+      lp.Q.value = 0.5;
       var gain = audioCtx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(500 + Math.random() * 220, t0);
       gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.13, t0 + 0.008);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.055);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(t0); osc.stop(t0 + 0.06);
+      gain.gain.linearRampToValueAtTime(0.15, t0 + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.075);
+      src.connect(lp); lp.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t0); src.stop(t0 + 0.09);
+
+      var osc = audioCtx.createOscillator();
+      var og = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(180 + Math.random() * 40, t0);
+      osc.frequency.exponentialRampToValueAtTime(95, t0 + 0.06);
+      og.gain.setValueAtTime(0.0001, t0);
+      og.gain.linearRampToValueAtTime(0.11, t0 + 0.008);
+      og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
+      osc.connect(og); og.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.08);
     }catch(e){}
   }
 
