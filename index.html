@@ -767,6 +767,13 @@
     font-family:ui-monospace,monospace;
     border:1px solid rgba(255,79,163,.28);
     text-align:left;
+    /* the card should rest showing the mystery back and reveal the photo on tap, not
+       the other way round - this face used to be the unrotated (0deg/"resting") one,
+       which meant the photo was already visible before she'd touched anything and the
+       reveal action flipped it AWAY to the ornate back instead of revealing it. moved
+       the 180deg rotation here (off .gallery-back below) so .flipped now brings THIS
+       face around to face the viewer instead. */
+    transform:rotateY(180deg);
   }
   .poke-top{
     display:flex; align-items:baseline; justify-content:space-between; gap:.4rem;
@@ -807,19 +814,42 @@
   }
   .poke-attack-name{ text-transform:lowercase; }
   .poke-attack-power{ color:#ff4fa3; font-weight:bold; }
-  .poke-desc{
+  /* the caption used to live inside .gallery-front (as .poke-desc) - moved below the
+     card entirely as its own element (a sibling of .gallery-card inside .gallery-card-
+     zoom, see the HTML) so it reads against the page's own cream background instead of
+     being squeezed into the dark card face. kept in NORMAL layout flow (not absolutely
+     positioned) rather than overlaid under the card - an absolutely-positioned version
+     doesn't reserve any grid row height while hidden, so a caption on a revealed card
+     visually collided with the cards in the row below it the moment it appeared. this
+     way every card's row is already sized to fit a caption whether or not it's actually
+     showing yet (same text, same size, only opacity/transform change), so nothing
+     shifts or overlaps when a card flips. the sibling selector below only reveals it
+     once .gallery-card actually has .flipped (i.e. the photo, not the ornate back, is
+     what's showing), with a short delay so it settles in just after the flip lands. */
+  .gallery-caption{
+    margin:.65rem 0 0;
     font-family:ui-serif,Georgia,"Iowan Old Style",serif;
     font-style:italic;
-    font-size:.56rem;
-    line-height:1.35;
-    color:#b993a8;
-    margin:0;
+    font-size:.78rem;
+    line-height:1.4;
+    color:var(--bloom-ink-soft);
+    text-align:center;
+    opacity:0;
+    transform:translateY(-5px);
+    transition:opacity 380ms ease, transform 380ms ease;
+    pointer-events:none;
+  }
+  .gallery-card.flipped ~ .gallery-caption{
+    opacity:1;
+    transform:translateY(0);
+    transition-delay:280ms;
   }
   .gallery-back{
     background:
       linear-gradient(160deg,#2e1f38,#150e1b 78%) padding-box,
       linear-gradient(135deg,#ff4fa3,#e8799f 55%,#ffb3da) border-box;
-    transform:rotateY(180deg);
+    /* no rotation here any more - this is now the resting/unrotated face (see the
+       comment on .gallery-front above for why) */
     border:2px solid transparent;
   }
   .gallery-ornament{
@@ -2215,7 +2245,7 @@
     <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 1 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">😍</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">heart eyes</span><span class="poke-attack-power">40</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 1 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">😍</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">heart eyes</span><span class="poke-attack-power">40</span></div></div>
         <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
@@ -2239,11 +2269,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    <p class="gallery-caption">[ a caption for this one ]</p>
     </div>
     <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 2 ]</span><span class="poke-hp">HP<b>95</b></span></div><span class="poke-type" aria-hidden="true">🥹</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">happy tears</span><span class="poke-attack-power">35</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 2 ]</span><span class="poke-hp">HP<b>95</b></span></div><span class="poke-type" aria-hidden="true">🥹</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">happy tears</span><span class="poke-attack-power">35</span></div></div>
         <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
@@ -2267,11 +2298,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    <p class="gallery-caption">[ a caption for this one ]</p>
     </div>
     <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 3 ]</span><span class="poke-hp">HP<b>90</b></span></div><span class="poke-type" aria-hidden="true">😂</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">the giggles</span><span class="poke-attack-power">50</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 3 ]</span><span class="poke-hp">HP<b>90</b></span></div><span class="poke-type" aria-hidden="true">😂</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">the giggles</span><span class="poke-attack-power">50</span></div></div>
         <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
@@ -2295,11 +2327,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    <p class="gallery-caption">[ a caption for this one ]</p>
     </div>
     <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 4 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">🥰</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">warm hug</span><span class="poke-attack-power">30</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 4 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">🥰</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">warm hug</span><span class="poke-attack-power">30</span></div></div>
         <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
@@ -2323,11 +2356,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    <p class="gallery-caption">[ a caption for this one ]</p>
     </div>
     <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 5 ]</span><span class="poke-hp">HP<b>98</b></span></div><span class="poke-type" aria-hidden="true">✨</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">golden hour</span><span class="poke-attack-power">45</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 5 ]</span><span class="poke-hp">HP<b>98</b></span></div><span class="poke-type" aria-hidden="true">✨</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">golden hour</span><span class="poke-attack-power">45</span></div></div>
         <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
@@ -2351,11 +2385,12 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    <p class="gallery-caption">[ a caption for this one ]</p>
     </div>
     <div class="gallery-card-zoom">
     <div class="gallery-card">
       <div class="gallery-card-inner">
-        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 6 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">🎉</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">best day yet</span><span class="poke-attack-power">60</span></div><p class="poke-desc">[ a caption for this one ]</p></div>
+        <div class="gallery-face gallery-front"><div class="poke-top"><span class="poke-name">[ photo 6 ]</span><span class="poke-hp">HP<b>100</b></span></div><span class="poke-type" aria-hidden="true">🎉</span><div class="poke-art"><span>[ photo of you two ]</span></div><div class="poke-attack"><span class="poke-attack-name">best day yet</span><span class="poke-attack-power">60</span></div></div>
         <div class="gallery-face gallery-back"><svg class="gallery-ornament" viewBox="0 0 200 250" aria-hidden="true"><use href="#cardOrnament"/></svg><span class="gallery-rarity">keepsake</span><span class="gallery-corner" aria-hidden="true"></span><p>[ your remark on this one ]</p></div>
       </div>
       <svg class="gallery-burst" viewBox="-60 -60 120 120" aria-hidden="true">
@@ -2379,6 +2414,7 @@
         <use class="burst-sparkle" href="#sparkleStar" fill="#fff0f7" style="--tx:-16px; --ty:74px; --sd:600ms"/>
       </svg>
     </div>
+    <p class="gallery-caption">[ a caption for this one ]</p>
     </div>
   </div>
   <p class="gallery-hint">tap a photo</p>
@@ -3961,6 +3997,12 @@
     var veil = document.getElementById('galleryRevealVeil');
     var revealInProgress = false;
     var ZOOM_MS = 3100;
+    var openCard = null; // whichever card is currently showing its photo, if any -
+    // dismissed by pressing space or tapping anywhere that isn't a card, not by an
+    // automatic timer and not by re-tapping the same card (see the two listeners below)
+    function closeOpenCard(){
+      if(openCard){ openCard.classList.remove('flipped'); openCard = null; }
+    }
     document.querySelectorAll('.gallery-card').forEach(function(card){
       var revealed = false;
       var zoomWrap = card.parentElement; // .gallery-card-zoom
@@ -3971,8 +4013,8 @@
         // removing .flipped partway through would snap the card back to the front the
         // moment its own forwards-fill gets cleaned up
         if(revealInProgress) return;
-        playRustle();
         if(!revealed){
+          playRustle();
           // first reveal only — a gacha-pull-style pull: the card actually flies from
           // its grid slot to screen-center and grows large (not just a scale-pop in
           // place), the whole grid dims behind #galleryRevealVeil so it reads as the
@@ -3980,11 +4022,11 @@
           // pop and a screen-shake jolt right as the zoom lands, rays/sparkles/a
           // shockwave ring burst from the center, a holographic sheen sweeps the back,
           // it holds at a slightly-smaller-but-still-focused size long enough to read,
-          // then eases back to its grid slot. every tap after this is just the plain
-          // quick flip below — the drama is a one-time pull, not something that
-          // replays every tap.
+          // then eases back to its grid slot (still showing the photo - see
+          // closeOpenCard for how it's put back).
           revealed = true;
           revealInProgress = true;
+          openCard = card;
           if(veil){ veil.classList.add('active'); }
           card.classList.add('card-bursting', 'flipped');
 
@@ -4013,10 +4055,28 @@
             if(veil){ veil.classList.remove('active'); }
             revealInProgress = false;
           }, reduced ? 50 : ZOOM_MS);
+        } else if(card === openCard){
+          // tapping the already-open card is a forgiving shortcut for the same
+          // dismiss space/tap-elsewhere do, not a separate toggle-back-and-forth
+          playRustle();
+          closeOpenCard();
         } else {
-          card.classList.toggle('flipped');
+          // a different, already-revealed card - close whichever one was open (if
+          // any) and do a plain quick flip to this one's photo, no dramatic pull
+          playRustle();
+          closeOpenCard();
+          card.classList.add('flipped');
+          openCard = card;
         }
       });
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.key === ' ' || e.code === 'Space'){
+        if(openCard){ e.preventDefault(); closeOpenCard(); }
+      }
+    });
+    document.addEventListener('click', function(e){
+      if(openCard && !e.target.closest('.gallery-card')){ closeOpenCard(); }
     });
     var continueBtn = document.getElementById('galleryContinueBtn');
     if(continueBtn){
