@@ -709,6 +709,12 @@
     grid-template-columns:repeat(auto-fit,minmax(175px,1fr));
     gap:1.1rem;
     max-width:860px;
+    width:100%; /* .gallery uses align-items:center (not the flex default of stretch),
+      so without an explicit width this shrink-wraps to whatever auto-fit decides it
+      wants instead of the space actually available - auto-fit's column math needs a
+      resolved container width to fit *within*, not one it gets to invent, and without
+      this it was overcommitting to 4 columns and overflowing past the real viewport by
+      a card's width, which is what forced a genuine (not just cosmetic) scrollbar */
     margin:0 auto;
   }
   /* the zoom-to-center animation (see initGallery) targets THIS wrapper, kept
@@ -1269,22 +1275,30 @@
     transform:scale(1);
   }
 
-  /* the "fadeaway morph" for whichever slide she's leaving - same fade+blur-dissolve
-     .void.leaving already used for the very first transition, generalized to every
-     other slide via hideSlide() below, instead of the instant display:none cut this
-     used to be. deliberately slower (1100ms) than any of these sections' own entrance
-     transitions above (700-800ms) and than a button's own slow squish-rise (950ms, see
-     the base `button` rule up top) - so whatever she just pressed is still visible
-     completing its own animation while this slide dissolves out from under it, with the
-     next slide fading in on top of it rather than snapping away mid-rise. no z-index
-     needed for the layering to read correctly: every slide here appears later in the
-     HTML than the one before it in this site's strictly-forward navigation, so the
-     incoming slide already paints on top of the outgoing one by plain document order. */
+  /* the "fadeaway morph" for whichever slide she's leaving - generalizes .void.leaving's
+     fade+blur-dissolve (used for the very first transition) to every other slide via
+     hideSlide() below, instead of the instant display:none cut this used to be. an
+     actual morph, not just a fade: it also grows slightly (scale 1 -> 1.08) as it
+     dissolves, like it's softly blooming outward into the blur rather than just
+     thinning out in place - a plain opacity fade alone read as barely-there even at a
+     slow duration, since the shape stayed crisp and static right up until it vanished.
+     slow (1600ms, eased out rather than linear-ish 'ease' so it visibly settles rather
+     than just stopping) - well past any of these sections' own entrance transitions
+     above (700-800ms) and a button's own slow squish-rise (950ms, see the base `button`
+     rule up top), so whatever she just pressed is still visible completing its own
+     animation while this slide dissolves out from under it, with the next slide fading
+     in on top rather than snapping away mid-rise. no z-index needed for the layering to
+     read correctly: every slide here appears later in the HTML than the one before it
+     in this site's strictly-forward navigation, so the incoming slide already paints on
+     top of the outgoing one by plain document order. */
   .bloom.leaving, .cutcake.leaving, .letter.leaving, .gallery.leaving,
   .gift.leaving, .toolate.leaving, .ending.leaving{
     opacity:0;
-    filter:blur(6px);
-    transition:opacity 1100ms ease, filter 1100ms ease, transform 1100ms ease;
+    filter:blur(14px);
+    transform:scale(1.08);
+    transition:opacity 1600ms cubic-bezier(.16,.7,.3,1),
+      filter 1600ms cubic-bezier(.16,.7,.3,1),
+      transform 1600ms cubic-bezier(.16,.7,.3,1);
     pointer-events:none;
   }
 
@@ -3225,7 +3239,8 @@
       el.hidden = true;
       el.classList.remove('leaving');
       if(isBloom){ el.classList.remove('active'); }
-    }, reduced ? 0 : 1100);
+    }, reduced ? 0 : 1600); // must match .leaving's own transition duration in the
+    // stylesheet - shorter here would hide the element mid-fade, cutting the morph off
   }
   // reveals ONE element in place — fades/scales it in, `onSettled` fires once that's
   // actually done. used both for whole-slide transitions (via showSlide below) and for
