@@ -484,7 +484,10 @@
        click-drag-to-scroll gesture by default, so it's added in JS (initTimelineDragScroll) */
     cursor:grab;
     user-select:none; -webkit-user-select:none;
+    scrollbar-width:none; /* Firefox — still drag/scrolls, just no visible track/thumb */
+    -ms-overflow-style:none; /* old Edge */
   }
+  .timeline::-webkit-scrollbar{ display:none; } /* Chrome/Safari/new Edge */
   .timeline.grabbing{ cursor:grabbing; scroll-snap-type:none; }
   .timeline-path{
     position:absolute;
