@@ -700,7 +700,10 @@
     background-repeat:repeat,no-repeat;
     background-blend-mode:multiply;
     padding:8vh 6vw;
+    scrollbar-width:none; /* Firefox — still scrolls, just no visible track/thumb */
+    -ms-overflow-style:none; /* old Edge */
   }
+  .gallery::-webkit-scrollbar{ display:none; } /* Chrome/Safari/new Edge */
   .gallery-grid{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(175px,1fr));
@@ -1266,6 +1269,25 @@
     transform:scale(1);
   }
 
+  /* the "fadeaway morph" for whichever slide she's leaving - same fade+blur-dissolve
+     .void.leaving already used for the very first transition, generalized to every
+     other slide via hideSlide() below, instead of the instant display:none cut this
+     used to be. deliberately slower (1100ms) than any of these sections' own entrance
+     transitions above (700-800ms) and than a button's own slow squish-rise (950ms, see
+     the base `button` rule up top) - so whatever she just pressed is still visible
+     completing its own animation while this slide dissolves out from under it, with the
+     next slide fading in on top of it rather than snapping away mid-rise. no z-index
+     needed for the layering to read correctly: every slide here appears later in the
+     HTML than the one before it in this site's strictly-forward navigation, so the
+     incoming slide already paints on top of the outgoing one by plain document order. */
+  .bloom.leaving, .cutcake.leaving, .letter.leaving, .gallery.leaving,
+  .gift.leaving, .toolate.leaving, .ending.leaving{
+    opacity:0;
+    filter:blur(6px);
+    transition:opacity 1100ms ease, filter 1100ms ease, transform 1100ms ease;
+    pointer-events:none;
+  }
+
   .continue-btn{
     display:block;
     font-family:ui-monospace,monospace;
@@ -1512,7 +1534,14 @@
     cursor:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg stroke='%235c2f42' stroke-width='1.3' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M3 5 L13 3 L29 19 L23 25 L7 9 Z' fill='%23eceaf2'/%3E%3Cpath d='M23 25 L29 19 L30 20 L24 26 Z' fill='%23c9c6d6'/%3E%3Crect x='19.5' y='20.5' width='13' height='6.5' rx='2.5' transform='rotate(45 26 24)' fill='%235c2f42'/%3E%3C/g%3E%3C/svg%3E")
       4 4, auto;
+    /* this section already gets 'entered'/'leaving' from showSlide/hideSlide like every
+       other one - it just had nothing reacting to them before (it used to only ever pop
+       in at full opacity), so its own leaving fade had no faded-out state to land on. */
+    opacity:0;
+    transform:scale(.97);
+    transition:opacity 750ms ease, transform 750ms cubic-bezier(.22,.8,.28,1);
   }
+  .cutcake.entered{ opacity:1; transform:scale(1); }
   .cutcake-content{
     display:flex; flex-direction:column; align-items:center; gap:1.3rem;
   }
@@ -3171,9 +3200,32 @@
   ];
   function hideSlide(el){
     if(!el) return;
-    el.hidden = true;
+    // bloom uses its own display:none/.active toggle, not [hidden]
+    var isBloom = el.id === 'bloomPhase';
+    var wasVisible = isBloom ? el.classList.contains('active') : !el.hidden;
+    if(!wasVisible){
+      // wasn't actually on screen - nothing to fade, just make sure state is clean
+      el.hidden = true;
+      el.classList.remove('entered', 'leaving');
+      if(isBloom){ el.classList.remove('active'); }
+      return;
+    }
+    // the fadeaway-morph exit (see .leaving in the stylesheet): fade+blur out slowly
+    // enough to still see whatever she just pressed finish its own animation, THEN
+    // actually hide - not the instant display:none cut this used to be.
     el.classList.remove('entered');
-    if(el.id === 'bloomPhase'){ el.classList.remove('active'); } // bloom uses its own display:none/.active toggle, not [hidden]
+    void el.offsetHeight; // force a style/layout flush so the still-fully-visible state
+    // actually commits before 'leaving' changes it - otherwise, since this all runs
+    // synchronously inside a click handler with no paint in between, the browser can
+    // coalesce both class changes into one recalc with nothing rendered to fade FROM,
+    // and the transition silently never plays (confirmed happening intermittently
+    // without this line, same root cause revealSection's own rAF-guard below exists for)
+    el.classList.add('leaving');
+    setTimeout(function(){
+      el.hidden = true;
+      el.classList.remove('leaving');
+      if(isBloom){ el.classList.remove('active'); }
+    }, reduced ? 0 : 1100);
   }
   // reveals ONE element in place — fades/scales it in, `onSettled` fires once that's
   // actually done. used both for whole-slide transitions (via showSlide below) and for
