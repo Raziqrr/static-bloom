@@ -40,6 +40,15 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   html,body{height:100%; overflow:hidden;} /* presentation mode — advance is buttons only, never scroll */
+  /* every <button> in the site presses in with a quick squish and springs back with a
+     bit of overshoot on release (the bezier's y going above 1 is what gives the
+     "bounce past full size" snap-back, not just an ease back to 1) - this is a base
+     layer under whatever each button's own class already does for hover/position
+     (e.g. .continue-btn:hover's translateY), so it composes with those rather than
+     replacing them outside of the brief moment it's actually pressed. paired with
+     playSquish() (see the sound-effects block) for the audio half of the same feel. */
+  button{ transition:transform 160ms cubic-bezier(.34,1.56,.64,1); }
+  button:active:not(:disabled){ transform:scale(.88); transition-duration:70ms; }
   body{
     background:var(--void);
     color:var(--void-text);
@@ -2996,6 +3005,80 @@
       }
     }catch(e){}
   }
+
+  // a soft, bouncy "squish" for every plain button press - Roblox-style UI click, not a
+  // sharp/mechanical one: a fast downward pitch slide (the "squish") plus a touch of
+  // high, quiet noise for a rubbery toy-like texture rather than a pure tone.
+  function playSquish(){
+    try{
+      warmAudio();
+      if(!audioCtx) return;
+      var t0 = audioCtx.currentTime + 0.002;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, t0);
+      osc.frequency.exponentialRampToValueAtTime(140, t0 + 0.075);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.1);
+
+      var src = audioCtx.createBufferSource();
+      src.buffer = makeNoiseBuffer(0.05);
+      var hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 4000;
+      var ngain = audioCtx.createGain();
+      ngain.gain.setValueAtTime(0.05, t0);
+      ngain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05);
+      src.connect(hp); hp.connect(ngain); ngain.connect(audioCtx.destination);
+      src.start(t0); src.stop(t0 + 0.05);
+    }catch(e){}
+  }
+
+  // every <button> gets the same press-squish sound - one delegated listener instead of
+  // touching every individual click handler in the file. pointerdown (not click) so it
+  // fires the instant she presses, matching the CSS :active squish's own timing; skips
+  // buttons that already have a specific, more elaborate sound of their own tied to a
+  // meaningful outcome (gallery card reveals, the cat, the wheel) via data-no-squish,
+  // so this stays a base "it responded to my touch" layer rather than cluttering those.
+  document.addEventListener('pointerdown', function(e){
+    var btn = e.target.closest('button');
+    if(btn && !btn.disabled && !btn.hasAttribute('data-no-squish')){ playSquish(); }
+  });
+
+  // a quiet, quick tick per keystroke - randomized pitch so a burst of typing (the 8-digit
+  // birth date, a wishlist guess) doesn't sound like the same note repeating.
+  function playKeyTick(){
+    try{
+      warmAudio();
+      if(!audioCtx) return;
+      var t0 = audioCtx.currentTime + 0.002;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(500 + Math.random() * 220, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.13, t0 + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.055);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + 0.06);
+    }catch(e){}
+  }
+
+  // every real text-entry field gets a key tick - the birth-date lock, the wishlist
+  // guess, and the date/time pickers (typing digits into those works the same way as
+  // any other input, even though most of their UI is native spinners/calendar).
+  Array.prototype.forEach.call(
+    document.querySelectorAll('.gallery-lock-input, .wishlist-input, #dateInput, #timeInput'),
+    function(input){
+      input.addEventListener('keydown', function(e){
+        // ignore navigation/editing/modifier keys - only actual character entry should tick
+        if(e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete'){ playKeyTick(); }
+      });
+    }
+  );
 
   var cat = document.getElementById('catMascot');
   if(cat){
