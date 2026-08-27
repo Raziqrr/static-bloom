@@ -1895,6 +1895,17 @@
 </head>
 <body>
 
+<!-- burstAt() (confetti-style particle burst) is shared across multiple slides - the
+     original bloom reveal AND the cut-cake confirmation - so this canvas has to live
+     at the top level, not nested inside any one <section>. It used to be inside .bloom,
+     which works fine for the bloom reveal itself but silently breaks for every other
+     caller: .bloom is display:none once she's moved past it, and a display:none
+     ancestor removes its entire subtree from rendering regardless of this canvas's own
+     position:fixed - so the cut-cake confetti was drawing correctly (confirmed earlier
+     by sampling actual pixel data on the canvas) and playing its pop sound, just never
+     visible, since its own canvas element was never being painted at all. -->
+<canvas id="burstLayer"></canvas>
+
 <section class="void" id="voidPhase">
   <p class="void-code" id="voidCode"></p>
   <p class="void-msg">this page could not be found.</p>
@@ -2134,7 +2145,6 @@
 
   <canvas id="petals"></canvas>
   <canvas id="confetti"></canvas>
-  <canvas id="burstLayer"></canvas>
 
   <div class="bloom-content">
     <div class="flower-field" aria-hidden="true">
