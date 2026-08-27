@@ -1026,6 +1026,24 @@
     transition:opacity 320ms ease;
   }
   .gallery-reveal-veil.active{ opacity:1; }
+  /* shown only while a card is being held large/focused - the whole point of the
+     gallery/pack reveals no longer auto-returning on a timer is that she decides when
+     she's done looking, so there needs to be some visible cue for HOW to dismiss it
+     (space or tapping anywhere) rather than her having to already know. z-index above
+     both the veil (20) and the actively-zoomed card (22, set inline by JS). */
+  .gallery-touch-hint{
+    position:fixed; left:0; right:0; bottom:1.6rem;
+    font-family:ui-monospace,monospace;
+    font-size:.72rem;
+    letter-spacing:.04em;
+    color:#fdf3e0;
+    text-align:center;
+    opacity:0;
+    transition:opacity 380ms ease;
+    pointer-events:none;
+    z-index:23;
+  }
+  .gallery-touch-hint.visible{ opacity:.85; }
   @media (prefers-reduced-motion:reduce){
     .gallery-card.card-bursting{ animation:none; }
     .gallery-card.card-bursting .gallery-card-inner{ animation:none; }
@@ -1761,7 +1779,7 @@
     background:var(--grain), var(--bloom-cream);
     background-repeat:repeat,no-repeat;
     background-blend-mode:multiply;
-    padding:9vh 6vw 0;
+    padding:9vh 6vw 8vh;
     opacity:0;
     transform:scale(.97);
     transition:opacity 750ms ease, transform 750ms cubic-bezier(.22,.8,.28,1);
@@ -1780,26 +1798,41 @@
     min-height:0;
     display:flex; flex-direction:column; align-items:center;
   }
+  /* no pre-declared "5 slots" any more - the hint text above already says how many are
+     left, so a row of dashed placeholder boxes for cards not pulled yet was just
+     redundant information twice over. cards get appended here, already filled, only
+     once she's actually dismissed them out of the reveal (see closeCardPackReveal) */
   .cardpack-collected{
-    display:flex; gap:.5rem;
-    padding-top:2.2rem;
+    display:flex; flex-wrap:wrap; justify-content:center; gap:.6rem;
+    padding-top:1.6rem;
     z-index:2;
   }
   .cardpack-slot{
-    width:50px; height:70px;
-    border-radius:5px;
-    border:1.5px dashed rgba(255,79,163,.35);
-    background:rgba(255,255,255,.4);
+    width:88px; height:123px;
+    border-radius:7px;
     overflow:hidden;
-    transition:transform 260ms cubic-bezier(.34,1.56,.64,1);
+    box-shadow:0 6px 14px -6px rgba(140,60,90,.45), 0 0 0 1.5px rgba(255,79,163,.5);
+    transform:scale(0);
+    transition:transform 380ms cubic-bezier(.34,1.56,.64,1);
   }
-  .cardpack-slot.pop{ transform:scale(1.15); }
-  .cardpack-slot.filled{
-    border-style:solid;
-    border-color:rgba(255,79,163,.5);
-    box-shadow:0 4px 10px -4px rgba(140,60,90,.4);
-  }
+  .cardpack-slot.in{ transform:scale(1); }
   .cardpack-slot img{ display:block; width:100%; height:100%; object-fit:cover; }
+  /* shown only while a pulled card is being held large and focused - same idea as
+     .gallery-touch-hint, see the comment there for why this exists as a separate
+     fixed-bottom element instead of just repurposing .cardpack-hint above */
+  .cardpack-touch-hint{
+    position:absolute; left:0; right:0; bottom:1.4rem;
+    font-family:ui-monospace,monospace;
+    font-size:.72rem;
+    letter-spacing:.04em;
+    color:#fdf3e0;
+    text-align:center;
+    opacity:0;
+    transition:opacity 380ms ease;
+    pointer-events:none;
+    z-index:5;
+  }
+  .cardpack-touch-hint.visible{ opacity:.85; }
   /* a dim backdrop behind the rising card, same recipe as .gallery-reveal-veil - insets
      stretch past the section's own padding so it truly covers edge to edge */
   .cardpack-reveal-veil{
@@ -1872,7 +1905,7 @@
   .cardpack-cover{
     appearance:none; border:none; background:none; padding:0;
     position:absolute;
-    bottom:-190px; left:0; right:0;
+    bottom:-100px; left:0; right:0;
     width:min(220px,56vw);
     margin:0 auto;
     cursor:pointer;
@@ -2402,6 +2435,7 @@
     <p class="gallery-lock-error" id="galleryLockError" hidden>that's not quite right — try again</p>
   </div>
   <div class="gallery-reveal-veil" id="galleryRevealVeil" aria-hidden="true"></div>
+  <p class="gallery-touch-hint" id="galleryTouchHint" aria-hidden="true">touch anywhere to continue</p>
   <div class="gallery-grid">
     <div class="gallery-card-zoom">
     <div class="gallery-card">
@@ -2586,14 +2620,9 @@
   <p class="letter-eyebrow">and a pack, just for you</p>
   <p class="cardpack-hint" id="cardPackHint">tap the pack to pull a card</p>
   <div class="cardpack-stage">
-    <div class="cardpack-collected" id="cardPackCollected">
-      <div class="cardpack-slot"></div>
-      <div class="cardpack-slot"></div>
-      <div class="cardpack-slot"></div>
-      <div class="cardpack-slot"></div>
-      <div class="cardpack-slot"></div>
-    </div>
+    <div class="cardpack-collected" id="cardPackCollected"></div>
     <div class="cardpack-reveal-veil" id="cardPackVeil" aria-hidden="true"></div>
+    <p class="cardpack-touch-hint" id="cardPackTouchHint" aria-hidden="true">touch anywhere to continue</p>
     <div class="cardpack-reveal" id="cardPackReveal">
       <svg class="cardpack-burst" viewBox="-90 -90 180 180" aria-hidden="true">
         <circle class="cpburst-flash" cx="0" cy="0" r="60" fill="url(#burstFlashGrad)"/>
@@ -4216,6 +4245,7 @@
 
   (function initGallery(){
     var veil = document.getElementById('galleryRevealVeil');
+    var touchHint = document.getElementById('galleryTouchHint');
     var revealInProgress = false;
     var ZOOM_MS = 3100;
     var openCard = null; // whichever card is currently showing its photo, if any -
@@ -4231,6 +4261,7 @@
       var zoomWrap = card.parentElement;
       card.classList.remove('flipped');
       if(veil){ veil.classList.remove('active'); }
+      if(touchHint){ touchHint.classList.remove('visible'); }
       if(openZoomAnim){
         // read the CURRENT held transform before cancelling - getComputedStyle
         // correctly reflects a WAAPI animation's live value even mid-hold, so the
@@ -4280,6 +4311,7 @@
           revealInProgress = true;
           openCard = card;
           if(veil){ veil.classList.add('active'); }
+          if(touchHint){ touchHint.classList.add('visible'); }
           card.classList.add('card-bursting', 'flipped');
 
           if(!reduced && zoomWrap && zoomWrap.animate){
@@ -4313,6 +4345,7 @@
           closeOpenCard();
           card.classList.add('flipped');
           openCard = card;
+          if(touchHint){ touchHint.classList.add('visible'); }
         }
       });
     });
@@ -4362,25 +4395,29 @@
     var revealImg = document.getElementById('cardPackRevealImg');
     var veil = document.getElementById('cardPackVeil');
     var hint = document.getElementById('cardPackHint');
+    var touchHint = document.getElementById('cardPackTouchHint');
     var continueBtn = document.getElementById('cardPackContinueBtn');
-    var slots = document.querySelectorAll('.cardpack-slot');
+    var collected = document.getElementById('cardPackCollected');
     if(!coverBtn) return;
     var pulled = 0;
-    var pulling = false;
-    var REVEAL_MS = 2300;
+    var revealHeld = false; // true while a pulled card is up, large, and waiting to be
+    // dismissed - same idea as the gallery's openCard: nothing auto-settles it back on
+    // a timer any more, only actually dismissing it (space or tapping anywhere) does
+    var revealAnim = null;
+    var revealCard = null;
 
     function pullNext(){
-      if(pulling || pulled >= CARDS.length) return;
-      pulling = true;
+      if(revealHeld || pulled >= CARDS.length) return;
       var card = CARDS[pulled];
+      revealCard = card;
+      revealHeld = true;
       revealImg.src = card.src;
       revealImg.alt = card.alt;
       if(veil){ veil.classList.add('active'); }
       playWhoosh();
 
-      var anim = null;
       if(!reduced){
-        anim = reveal.animate([
+        revealAnim = reveal.animate([
           { transform:'translate(-50%,-50%) translateY(230px) scale(.32) rotate(-8deg)', opacity:0, offset:0 },
           { transform:'translate(-50%,-50%) translateY(0) scale(1.08) rotate(2deg)', opacity:1, offset:.6 },
           { transform:'translate(-50%,-50%) translateY(0) scale(1) rotate(0deg)', opacity:1, offset:1 }
@@ -4393,37 +4430,68 @@
       setTimeout(function(){
         playBoop(); playChime();
         reveal.classList.add('burst-active');
+        if(touchHint){ touchHint.classList.add('visible'); }
       }, reduced ? 0 : 520);
-
-      setTimeout(function(){
-        var slot = slots[pulled];
-        if(slot){
-          var img = document.createElement('img');
-          img.src = card.src; img.alt = card.alt;
-          slot.appendChild(img);
-          slot.classList.add('filled', 'pop');
-          setTimeout(function(){ slot.classList.remove('pop'); }, 260);
-        }
-        reveal.classList.remove('burst-active');
-        if(anim){ anim.cancel(); }
-        reveal.style.opacity = '';
-        reveal.style.transform = '';
-        if(veil){ veil.classList.remove('active'); }
-        pulled++;
-        pulling = false;
-        if(pulled >= CARDS.length){
-          hint.textContent = "that's the whole pack";
-          coverBtn.disabled = true;
-          continueBtn.hidden = false;
-          unlockControl(continueBtn);
-        } else {
-          var left = CARDS.length - pulled;
-          hint.textContent = left + (left === 1 ? ' card left' : ' cards left');
-        }
-      }, reduced ? 60 : REVEAL_MS);
     }
 
-    coverBtn.addEventListener('click', pullNext);
+    function dismissReveal(){
+      if(!revealHeld) return;
+      var card = revealCard;
+      reveal.classList.remove('burst-active');
+      if(touchHint){ touchHint.classList.remove('visible'); }
+      if(veil){ veil.classList.remove('active'); }
+      if(revealAnim){ revealAnim.cancel(); }
+      reveal.style.opacity = '';
+      reveal.style.transform = '';
+      revealAnim = null;
+      revealCard = null;
+      revealHeld = false;
+
+      var slotEl = document.createElement('div');
+      slotEl.className = 'cardpack-slot';
+      var img = document.createElement('img');
+      img.src = card.src; img.alt = card.alt;
+      slotEl.appendChild(img);
+      collected.appendChild(slotEl);
+      if(reduced){
+        slotEl.classList.add('in');
+      } else {
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){ slotEl.classList.add('in'); });
+        });
+      }
+
+      pulled++;
+      if(pulled >= CARDS.length){
+        hint.textContent = "that's the whole pack";
+        coverBtn.disabled = true;
+        continueBtn.hidden = false;
+        unlockControl(continueBtn);
+      } else {
+        var left = CARDS.length - pulled;
+        hint.textContent = left + (left === 1 ? ' card left' : ' cards left');
+      }
+    }
+
+    // a single document-level click handler for both actions, rather than a separate
+    // listener on coverBtn PLUS one on document - those would both fire on the exact
+    // same click (it bubbles from the button up to document) whenever that click is
+    // the one that STARTS a pull: coverBtn's own handler would set revealHeld true,
+    // then the document handler would see revealHeld already true and immediately
+    // dismiss the reveal it had just started, on the very same tap. one handler means
+    // one decision per click instead.
+    document.addEventListener('click', function(e){
+      if(revealHeld){
+        dismissReveal();
+        return;
+      }
+      if(e.target.closest && e.target.closest('#cardPackCoverBtn')){
+        pullNext();
+      }
+    });
+    document.addEventListener('keydown', function(e){
+      if((e.key === ' ' || e.code === 'Space') && revealHeld){ e.preventDefault(); dismissReveal(); }
+    });
     continueBtn.addEventListener('click', function(){
       showSlide(document.getElementById('giftPhase'), 800, function(){
         unlockControl(document.getElementById('giftBoxWrap'));
