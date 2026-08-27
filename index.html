@@ -184,6 +184,16 @@
   }
   .bloom::-webkit-scrollbar{ display:none; } /* Chrome/Safari/new Edge */
   .bloom.active{display:flex;}
+  /* on a short viewport the real content (headline, photo frame, button) genuinely
+     doesn't fit at the full 10vh/8vh padding - that's legitimate overflow, not a bug,
+     since it's actual content rather than the flower-field's old bottom-bleed (fixed
+     separately) - but the padding alone was worth ~86px of vertical space at a 480px-
+     tall viewport, more than the overflow itself. shrinking it on short screens
+     doesn't eliminate the need to scroll there entirely, but meaningfully narrows how
+     far there is to scroll before everything already fits without it. */
+  @media (max-height:700px){
+    .bloom{ padding:5vh 6vw 4vh; }
+  }
 
   #confetti{position:fixed; inset:0; pointer-events:none; z-index:5;}
   #burstLayer{position:fixed; inset:0; pointer-events:none; z-index:6;}
