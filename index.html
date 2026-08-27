@@ -1151,7 +1151,7 @@
   /* dimensional shading via gradients rather than flat fills — the stop colors (not the
      fill) transition, so the box still reads as lit/shaded once real color arrives */
   .gift-body, .gift-lid{ fill:url(#giftBodyGrad); }
-  .gift-ribbon-v, .gift-ribbon-h, .gift-bow path, .gift-bow circle{ fill:url(#giftRibbonGrad); }
+  .gift-ribbon-v-lid, .gift-ribbon-v-body, .gift-ribbon-h, .gift-bow path, .gift-bow circle{ fill:url(#giftRibbonGrad); }
   .gift-stop-body-a{ stop-color:#726c7a; transition:stop-color 700ms ease; }
   .gift-stop-body-b{ stop-color:#413c49; transition:stop-color 700ms ease; }
   .gift-stop-ribbon-a{ stop-color:#524c5c; transition:stop-color 700ms ease; }
@@ -2692,13 +2692,24 @@
       </defs>
       <ellipse class="gift-shadow" cx="100" cy="184" rx="78" ry="10"/>
       <rect class="gift-body" x="30" y="80" width="140" height="100" rx="6"/>
-      <rect class="gift-lid" id="giftLid" x="18" y="52" width="164" height="34" rx="6"/>
-      <rect class="gift-ribbon-v" x="92" y="52" width="16" height="128"/>
+      <!-- the body-side ribbon stays put; only the sliver of vertical ribbon that
+           actually sits ON the lid (y 52-86, same span as the lid rect below) needs to
+           travel with it - previously this was one single rect running the full height
+           (52-180), so the whole ribbon+bow just stayed rigidly in place while only the
+           bare lid rect rotated/lifted away from underneath them. -->
+      <rect class="gift-ribbon-v-body" x="92" y="86" width="16" height="94"/>
       <rect class="gift-ribbon-h" x="18" y="88" width="164" height="16"/>
-      <g class="gift-bow">
-        <path d="M100,52 C78,52 66,36 74,20 C86,22 98,34 100,52 Z"/>
-        <path d="M100,52 C122,52 134,36 126,20 C114,22 102,34 100,52 Z"/>
-        <circle cx="100" cy="50" r="9"/>
+      <!-- lid + the ribbon segment on top of it + the bow, grouped so the open/shake
+           animation (targeted at #giftLid, unchanged below) moves all three together
+           instead of just the bare lid rect while its ribbon and bow stay behind. -->
+      <g id="giftLid">
+        <rect class="gift-lid" x="18" y="52" width="164" height="34" rx="6"/>
+        <rect class="gift-ribbon-v-lid" x="92" y="52" width="16" height="34"/>
+        <g class="gift-bow">
+          <path d="M100,52 C78,52 66,36 74,20 C86,22 98,34 100,52 Z"/>
+          <path d="M100,52 C122,52 134,36 126,20 C114,22 102,34 100,52 Z"/>
+          <circle cx="100" cy="50" r="9"/>
+        </g>
       </g>
       <ellipse class="gift-glow" cx="100" cy="86" rx="60" ry="46" fill="url(#giftGlowGrad)"/>
     </svg>
