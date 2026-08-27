@@ -502,6 +502,16 @@
     user-select:none; -webkit-user-select:none;
     scrollbar-width:none; /* Firefox — still drag/scrolls, just no visible track/thumb */
     -ms-overflow-style:none; /* old Edge */
+    /* a soft corkboard behind the pinned photos - background-attachment's default
+       (scroll) anchors a background to the element's OWN box, not its scrolling
+       content, so this stays put as she drags through the strip instead of sliding
+       along with the photos. the dot grid is a repeating radial-gradient (no image
+       asset), faint enough to read as texture rather than a pattern competing with
+       the photos pinned on top of it. */
+    background:
+      radial-gradient(circle, rgba(140,90,60,.1) 1px, transparent 1.3px) 0 0/16px 16px,
+      linear-gradient(175deg, #f3e0c2, #e8caa0);
+    box-shadow:inset 0 0 3.5rem rgba(120,70,40,.2);
   }
   .timeline::-webkit-scrollbar{ display:none; } /* Chrome/Safari/new Edge */
   .timeline.grabbing{ cursor:grabbing; scroll-snap-type:none; }
@@ -1720,6 +1730,20 @@
     transform:translate(-50%,-50%) rotate(var(--rot,0deg));
     filter:drop-shadow(0 5px 10px rgba(140,60,90,.22));
   }
+  /* same recipe as .ending-stickers, reused via initSharedStickers() cloning the
+     actual <img> elements at runtime instead of re-embedding the same base64 data
+     under a second set of img tags */
+  .letter-stickers, .gift-stickers{
+    position:absolute; inset:0;
+    pointer-events:none;
+    overflow:hidden;
+    z-index:0;
+  }
+  .letter-stickers img, .gift-stickers img{
+    position:absolute;
+    transform:translate(-50%,-50%) rotate(var(--rot,0deg));
+    filter:drop-shadow(0 5px 10px rgba(140,60,90,.22));
+  }
   .ending-eyebrow{
     font-family:ui-monospace,monospace;
     letter-spacing:.12em;
@@ -2320,6 +2344,9 @@
 
 <section class="letter" id="letterPhase" hidden>
   <p class="letter-eyebrow">before you go any further</p>
+  <!-- populated by initSharedStickers() - reuses the same sticker images already
+       embedded for the ending page instead of duplicating that base64 data again -->
+  <div class="letter-stickers" id="letterStickers" aria-hidden="true"></div>
   <div class="timeline" id="timeline">
     <svg class="timeline-path" id="timelinePath" aria-hidden="true"></svg>
 
@@ -2673,6 +2700,7 @@
 
 <section class="gift" id="giftPhase" hidden>
   <p class="letter-eyebrow">one more thing</p>
+  <div class="gift-stickers" id="giftStickers" aria-hidden="true"></div>
   <div class="gift-box-wrap locked" id="giftBoxWrap">
     <svg class="gift-box-svg" id="giftBoxSvg" viewBox="0 0 200 190" width="100%" height="100%">
       <defs>
@@ -3949,6 +3977,27 @@
       showSlide(document.getElementById('letterPhase'), 900);
     });
   }
+
+  // scatters a couple of the same sticker images already embedded for the ending page
+  // (cloned at runtime, not re-embedded as a second copy of the same base64 data) onto
+  // the timeline/gift scenes too - "the last page's stickers make it look alive"
+  // feedback, extended to the two other slides that were still just plain background.
+  (function initSharedStickers(){
+    var sourceImgs = document.querySelectorAll('.ending-stickers img');
+    if(!sourceImgs.length) return;
+    function place(container, srcIndex, top, left, width, rot){
+      var source = sourceImgs[srcIndex % sourceImgs.length];
+      if(!source || !container) return;
+      var img = source.cloneNode(true);
+      img.style.top = top; img.style.left = left; img.style.width = width;
+      img.style.setProperty('--rot', rot);
+      container.appendChild(img);
+    }
+    place(document.getElementById('letterStickers'), 0, '7%', '9%', '46px', '-9deg');
+    place(document.getElementById('letterStickers'), 1, '8%', '91%', '40px', '12deg');
+    place(document.getElementById('giftStickers'), 2, '20%', '13%', '46px', '-11deg');
+    place(document.getElementById('giftStickers'), 0, '76%', '87%', '40px', '9deg');
+  })();
 
   // touch already scrolls .timeline natively (finger-drag = scroll, for free); a mouse
   // has no equivalent gesture, so click-and-drag-to-pan is added by hand here. the
