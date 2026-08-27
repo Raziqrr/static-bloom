@@ -71,7 +71,12 @@
     background-repeat:repeat,no-repeat;
     background-blend-mode:multiply;
     transition:opacity 900ms ease, filter 900ms ease;
+    scrollbar-width:none; /* Firefox — same treatment as .gallery/.timeline: still
+      scrolls if genuinely needed, just no visible track/thumb for the odd sub-pixel
+      of overflow this kind of vh-padded flex layout can round into on some viewports */
+    -ms-overflow-style:none; /* old Edge */
   }
+  .void::-webkit-scrollbar{ display:none; } /* Chrome/Safari/new Edge */
   .void::before{
     content:"";
     position:absolute; inset:0;
@@ -174,7 +179,10 @@
     text-align:center;
     padding:10vh 6vw 8vh;
     overflow-y:auto; overflow-x:hidden;
+    scrollbar-width:none; /* Firefox — see the .void comment above for why */
+    -ms-overflow-style:none; /* old Edge */
   }
+  .bloom::-webkit-scrollbar{ display:none; } /* Chrome/Safari/new Edge */
   .bloom.active{display:flex;}
 
   #confetti{position:fixed; inset:0; pointer-events:none; z-index:5;}
@@ -291,7 +299,15 @@
   }
 
   .bloom-content{position:relative; isolation:isolate; display:flex; flex-direction:column; align-items:center;}
-  .flower-field{position:absolute; inset:-14% -20%; pointer-events:none; z-index:0;}
+  /* bleeds past the top and sides on purpose (flowers scattered past the visible edge
+     reads better than a hard-clipped field) - but NOT the bottom: unlike top/side
+     bleed, which is naturally unreachable (nothing lets .bloom scroll above its own
+     top), bottom bleed genuinely adds to .bloom's scrollable height, and was the
+     entire cause of a few extra pixels of real, scrollable overflow on this slide -
+     small enough to be easy to miss looking at it, but enough to show a scrollbar and
+     let it slightly scroll, which button-only "presentation mode" isn't supposed to
+     allow at all. */
+  .flower-field{position:absolute; top:-14%; left:-20%; right:-20%; bottom:0; pointer-events:none; z-index:0;}
   .flower-slot{position:absolute; width:120px; height:120px; transform:translate(-50%,-50%) scale(var(--s,1));}
   .leaf-slot{position:absolute; width:52px; height:52px; transform:translate(-50%,-50%) scale(var(--s,1)) rotate(var(--r,0deg));}
 
