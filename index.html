@@ -4195,37 +4195,67 @@
     var openCard = null; // whichever card is currently showing its photo, if any -
     // dismissed by pressing space or tapping anywhere that isn't a card, not by an
     // automatic timer and not by re-tapping the same card (see the two listeners below)
+    var openZoomAnim = null; // the held (fill:forwards) zoom-in animation for
+    // whichever card is currently open, if it got there via the dramatic pull rather
+    // than a plain in-grid quick flip - null in the quick-flip case, since there's no
+    // zoom to reverse
     function closeOpenCard(){
-      if(openCard){ openCard.classList.remove('flipped'); openCard = null; }
+      if(!openCard) return;
+      var card = openCard;
+      var zoomWrap = card.parentElement;
+      card.classList.remove('flipped');
+      if(veil){ veil.classList.remove('active'); }
+      if(openZoomAnim){
+        // read the CURRENT held transform before cancelling - getComputedStyle
+        // correctly reflects a WAAPI animation's live value even mid-hold, so the
+        // return-to-grid animation started right below picks up from exactly where
+        // the hold left off instead of jumping
+        var holdTransform = getComputedStyle(zoomWrap).transform;
+        openZoomAnim.cancel();
+        if(!reduced && zoomWrap.animate){
+          var exitAnim = zoomWrap.animate([
+            { transform: holdTransform },
+            { transform: 'translate(0px,0px) scale(1)' }
+          ], { duration: 700, easing: 'cubic-bezier(.3,0,.2,1)', fill: 'forwards' });
+          exitAnim.onfinish = function(){
+            zoomWrap.style.zIndex = '';
+            exitAnim.cancel();
+          };
+        } else {
+          zoomWrap.style.zIndex = '';
+        }
+        openZoomAnim = null;
+      }
+      openCard = null;
     }
     document.querySelectorAll('.gallery-card').forEach(function(card){
       var revealed = false;
       var zoomWrap = card.parentElement; // .gallery-card-zoom
       card.addEventListener('click', function(){
-        // mid-reveal taps — this card or any other — are ignored rather than toggled.
-        // only one pull plays at a time (the veil is shared across the whole grid), and
-        // .card-bursting's flip animation runs independently of the .flipped class, so
-        // removing .flipped partway through would snap the card back to the front the
-        // moment its own forwards-fill gets cleaned up
+        // mid-reveal taps — this card or any other — are ignored rather than toggled,
+        // for the brief window while the burst/shake choreography is actually playing
         if(revealInProgress) return;
         if(!revealed){
           playRustle();
+          closeOpenCard(); // in case a different card was already open
           // first reveal only — a gacha-pull-style pull: the card actually flies from
           // its grid slot to screen-center and grows large (not just a scale-pop in
           // place), the whole grid dims behind #galleryRevealVeil so it reads as the
           // only thing in the room, a glow builds, the flip overshoots with a scale
           // pop and a screen-shake jolt right as the zoom lands, rays/sparkles/a
-          // shockwave ring burst from the center, a holographic sheen sweeps the back,
-          // it holds at a slightly-smaller-but-still-focused size long enough to read,
-          // then eases back to its grid slot (still showing the photo - see
-          // closeOpenCard for how it's put back).
+          // shockwave ring burst from the center, a holographic sheen sweeps the back
+          // - and then it just STAYS there, held large and focused, rather than
+          // auto-shrinking back on a timer. only actually dismissing it (space,
+          // tapping elsewhere, or tapping a different card - see closeOpenCard above)
+          // sends it back to its grid slot. every tap after this first one is just
+          // the plain quick flip below — the drama is a one-time pull, not something
+          // that replays every tap.
           revealed = true;
           revealInProgress = true;
           openCard = card;
           if(veil){ veil.classList.add('active'); }
           card.classList.add('card-bursting', 'flipped');
 
-          var zoomAnim = null;
           if(!reduced && zoomWrap && zoomWrap.animate){
             var rect = card.getBoundingClientRect();
             var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
@@ -4233,23 +4263,18 @@
             var peakScale = Math.min(3.1, Math.max(1.9, 300 / rect.width));
             var holdScale = peakScale * 0.68;
             zoomWrap.style.zIndex = 22;
-            zoomAnim = zoomWrap.animate([
+            openZoomAnim = zoomWrap.animate([
               { transform: 'translate(0px,0px) scale(1)', offset: 0 },
-              { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + peakScale + ')', offset: 0.21 },
-              { transform: 'translate(' + (dx * 0.85) + 'px,' + (dy * 0.85) + 'px) scale(' + holdScale + ')', offset: 0.45 },
-              { transform: 'translate(' + (dx * 0.85) + 'px,' + (dy * 0.85) + 'px) scale(' + holdScale + ')', offset: 0.77 },
-              { transform: 'translate(0px,0px) scale(1)', offset: 1 }
-            ], { duration: ZOOM_MS, easing: 'cubic-bezier(.22,.8,.28,1)', fill: 'forwards' });
+              { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + peakScale + ')', offset: 0.46 },
+              { transform: 'translate(' + (dx * 0.85) + 'px,' + (dy * 0.85) + 'px) scale(' + holdScale + ')', offset: 1 }
+            ], { duration: 1450, easing: 'cubic-bezier(.22,.8,.28,1)', fill: 'forwards' });
           }
 
           setTimeout(function(){ playBoop(); playChime(); }, 650);
           setTimeout(function(){
             card.classList.remove('card-bursting');
-            if(zoomWrap){ zoomWrap.style.zIndex = ''; }
-            if(zoomAnim){ zoomAnim.cancel(); }
-            if(veil){ veil.classList.remove('active'); }
             revealInProgress = false;
-          }, reduced ? 50 : ZOOM_MS);
+          }, reduced ? 50 : 1400);
         } else if(card === openCard){
           // tapping the already-open card is a forgiving shortcut for the same
           // dismiss space/tap-elsewhere do, not a separate toggle-back-and-forth
