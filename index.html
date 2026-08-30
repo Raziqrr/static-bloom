@@ -1965,6 +1965,17 @@
     100%{ transform:scale(1,1); opacity:1; }
   }
   .btn-bubble:disabled{
+    /* re-asserts the glassy gradient - .continue-btn:disabled (equal specificity,
+       earlier in the stylesheet) sets a plain solid-color background meant for that
+       base class alone, and since it's a shorthand it resets background-image to none
+       along with it. Without repeating the gradient here, a disabled .continue-btn.btn-
+       bubble button shows that flat pink fallback the whole time it's disabled - which
+       is most of the time, since these buttons start disabled until unlocked - then
+       visibly swaps to the real bubble look the instant it's enabled. */
+    background:
+      radial-gradient(120% 150% at 28% 18%, rgba(255,255,255,.65), rgba(255,255,255,0) 38%),
+      radial-gradient(140% 160% at 78% 88%, rgba(255,255,255,.18), rgba(255,255,255,0) 55%),
+      linear-gradient(150deg, rgba(255,201,220,.28) 0%, rgba(169,216,245,.3) 45%, rgba(111,176,224,.36) 100%);
     box-shadow:none;
     opacity:.35;
   }
